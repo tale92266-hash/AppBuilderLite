@@ -283,7 +283,12 @@ public class CloudBuildEngine implements BuildEngine {
         String downloadUrl = null;
         if (artifacts != null) {
             for (int i = 0; i < artifacts.length(); i++) {
-                JSONObject artifact = artifacts.getJSONObject(i);
+                // optJSONObject, not getJSONObject: the get* variant
+                // throws Android's checked JSONException.
+                JSONObject artifact = artifacts.optJSONObject(i);
+                if (artifact == null) {
+                    continue;
+                }
                 if (CloudBuildWorkflow.ARTIFACT_NAME.equals(
                         artifact.optString("name"))
                         && !artifact.optBoolean("expired", false)) {
