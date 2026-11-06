@@ -54,8 +54,28 @@ import com.nobi.appbuilder.model.ScreenModel;
 import com.nobi.appbuilder.repository.DocumentRepository;
 import com.nobi.appbuilder.screens.ScreenManager;
 import com.nobi.appbuilder.screens.ScreenNavigator;
+import com.nobi.appbuilder.sync.SynchronizationListener;
+import com.nobi.appbuilder.sync.SynchronizationManager;
+import com.nobi.appbuilder.sync.SynchronizationResult;
+import com.nobi.appbuilder.sync.SynchronizationState;
+import com.nobi.appbuilder.sync.conflict.ConflictRecord;
+import com.nobi.appbuilder.sync.conflict.ConflictResolution;
+import com.nobi.appbuilder.sync.reload.VisualEditorRefreshManager;
+import com.nobi.appbuilder.ui.assets.AssetManagerActivity;
+import com.nobi.appbuilder.ui.build.BuildActivity;
+import com.nobi.appbuilder.ui.flow.EventEditorActivity;
+import com.nobi.appbuilder.ui.flow.NavigationDesignerActivity;
 import com.nobi.appbuilder.ui.code.CodeStudioActivity;
+import com.nobi.appbuilder.ui.codeeditor.CodeEditorActivity;
+import com.nobi.appbuilder.ui.export.ExportActivity;
+import com.nobi.appbuilder.ui.library.ComponentLibraryActivity;
+import com.nobi.appbuilder.ui.library.DesignSystemActivity;
+import com.nobi.appbuilder.ui.library.TemplateGalleryActivity;
 import com.nobi.appbuilder.ui.preview.PreviewActivity;
+import com.nobi.appbuilder.ui.sync.ConflictDialogController;
+import com.nobi.appbuilder.ui.sync.SyncHistoryController;
+import com.nobi.appbuilder.ui.sync.SyncSettingsController;
+import com.nobi.appbuilder.ui.sync.SyncStatusController;
 import com.nobi.appbuilder.selection.GroupSelectionController;
 import com.nobi.appbuilder.selection.MultiSelectionManager;
 
@@ -113,6 +133,9 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
     private GroupSelectionController groupSelectionController;
     private ScreenManagerDialog screenManagerDialog;
     private boolean explicitSavePending;
+
+    /** Phase 11 sync engine. */
+    private SynchronizationManager syncManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -270,6 +293,51 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
                     public void onCode() {
                         openCode();
                     }
+
+                    @Override
+                    public void onExport() {
+                        openExport();
+                    }
+
+                    @Override
+                    public void onBuild() {
+                        openBuild();
+                    }
+
+                    @Override
+                    public void onCodeEditor() {
+                        openCodeEditor();
+                    }
+
+                    @Override
+                    public void onSyncStatus() {
+                        showSyncStatusDialog();
+                    }
+
+                    @Override
+                    public void onLibrary() {
+                        openLibrary();
+                    }
+
+                    @Override
+                    public void onTemplates() {
+                        openTemplates();
+                    }
+
+                    @Override
+                    public void onDesignSystem() {
+                        openDesignSystem();
+                    }
+
+                    @Override
+                    public void onAssets() {
+                        openAssets();
+                    }
+
+                    @Override
+                    public void onNavigation() {
+                        openNavigation();
+                    }
                 });
 
         selectionToolbarController = new SelectionToolbarController(
@@ -416,6 +484,23 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
                     }
                 });
         propertiesPanelController.setCommandRunner(this::executeCommand);
+        // Phase 14: inspector Events rows open the event editor.
+        propertiesPanelController.setEventsOpener((model, trigger) -> {
+            if (!loaded || document == null || screen == null
+                    || project == null) {
+                return;
+            }
+            autosaveManager.flush();
+            Intent intent = new Intent(this, EventEditorActivity.class);
+            intent.putExtra(EventEditorActivity.EXTRA_PROJECT_ID,
+                    project.getId());
+            intent.putExtra(EventEditorActivity.EXTRA_SCREEN_ID,
+                    screen.getId());
+            intent.putExtra(EventEditorActivity.EXTRA_COMPONENT_ID,
+                    model.getId());
+            intent.putExtra(EventEditorActivity.EXTRA_TRIGGER, trigger);
+            startActivity(intent);
+        });
 
         MaterialButtonToggleGroup toolToggle = findViewById(R.id.toggle_tools);
         toolToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
@@ -493,6 +578,7 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
                 updateZoomLabel();
                 commandManager.clear();
                 updateUndoRedoState();
+                initSyncManager();
                 recoveryManager.setLastSavedAt(lastSavedAt);
                 recoveryManager.startAutoSnapshot(
                         new RecoveryManager.SnapshotSource() {
@@ -638,6 +724,10 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
         updateSelectionToolbar();
         updateClipboardButtons();
         scheduleAutosave();
+        // Phase 11: visual change -> debounced IR-to-XML sync.
+        if (syncManager != null && screen != null) {
+            syncManager.onVisualChange(screen.getId());
+        }
     }
 
     private void doUndo() {
@@ -797,6 +887,10 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
         recoveryManager.stopAutoSnapshot();
         executor.shutdown();
         dbHelper.close();
+        if (syncManager != null) {
+            syncManager.release();
+        }
+        VisualEditorRefreshManager.unregister();
     }
 
     // ------------------------------------------------------------------
@@ -1123,6 +1217,227 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
         Intent intent = new Intent(this, CodeStudioActivity.class);
         intent.putExtra(CodeStudioActivity.EXTRA_PROJECT_ID, project.getId());
         startActivity(intent);
+    }
+
+    /** Opens the Android Studio export screen (Phase 8). Same pattern
+     * as openCode: flush pending autosave first, editor stays alive. */
+    private void openExport() {
+        if (!loaded || document == null || screen == null || project == null) {
+            return;
+        }
+        autosaveManager.flush();
+        Intent intent = new Intent(this, ExportActivity.class);
+        intent.putExtra(ExportActivity.EXTRA_PROJECT_ID, project.getId());
+        startActivity(intent);
+    }
+
+    /** Opens the APK build screen (Phase 9). Same pattern as
+     * openExport: flush pending autosave first. */
+    private void openBuild() {
+        if (!loaded || document == null || screen == null || project == null) {
+            return;
+        }
+        autosaveManager.flush();
+        Intent intent = new Intent(this, BuildActivity.class);
+        intent.putExtra(BuildActivity.EXTRA_PROJECT_ID, project.getId());
+        startActivity(intent);
+    }
+
+    /** Opens the professional code editor (Phase 10). Same pattern
+     * as openBuild: flush pending autosave first. */
+    private void openCodeEditor() {
+        if (!loaded || document == null || screen == null || project == null) {
+            return;
+        }
+        autosaveManager.flush();
+        Intent intent = new Intent(this, CodeEditorActivity.class);
+        intent.putExtra(CodeEditorActivity.EXTRA_PROJECT_ID, project.getId());
+        startActivity(intent);
+    }
+
+    /** Opens the component library (Phase 12). Same pattern as
+     * openCodeEditor: flush pending autosave first. */
+    private void openLibrary() {
+        if (!loaded || document == null || screen == null || project == null) {
+            return;
+        }
+        autosaveManager.flush();
+        Intent intent = new Intent(this, ComponentLibraryActivity.class);
+        intent.putExtra(ComponentLibraryActivity.EXTRA_PROJECT_ID,
+                project.getId());
+        intent.putExtra(ComponentLibraryActivity.EXTRA_SCREEN_ID,
+                screen.getId());
+        startActivity(intent);
+    }
+
+    /** Opens the template gallery (Phase 12). */
+    private void openTemplates() {
+        if (!loaded || document == null || screen == null || project == null) {
+            return;
+        }
+        autosaveManager.flush();
+        Intent intent = new Intent(this, TemplateGalleryActivity.class);
+        intent.putExtra(TemplateGalleryActivity.EXTRA_PROJECT_ID,
+                project.getId());
+        intent.putExtra(TemplateGalleryActivity.EXTRA_SCREEN_ID,
+                screen.getId());
+        startActivity(intent);
+    }
+
+    /** Opens the design system screen (Phase 12). */
+    private void openDesignSystem() {
+        if (!loaded || document == null || screen == null || project == null) {
+            return;
+        }
+        autosaveManager.flush();
+        Intent intent = new Intent(this, DesignSystemActivity.class);
+        intent.putExtra(DesignSystemActivity.EXTRA_PROJECT_ID, project.getId());
+        startActivity(intent);
+    }
+
+    /** Opens the asset manager (Phase 13). */
+    private void openAssets() {
+        if (!loaded || document == null || screen == null || project == null) {
+            return;
+        }
+        autosaveManager.flush();
+        Intent intent = new Intent(this, AssetManagerActivity.class);
+        intent.putExtra(AssetManagerActivity.EXTRA_PROJECT_ID, project.getId());
+        startActivity(intent);
+    }
+
+    /** Opens the navigation designer (Phase 14). */
+    private void openNavigation() {
+        if (!loaded || document == null || screen == null || project == null) {
+            return;
+        }
+        autosaveManager.flush();
+        Intent intent = new Intent(this, NavigationDesignerActivity.class);
+        intent.putExtra(NavigationDesignerActivity.EXTRA_PROJECT_ID,
+                project.getId());
+        startActivity(intent);
+    }
+
+    /** Phase 11: creates the sync manager once the project is loaded,
+     * wires the visual-refresh listener and the conflict dialog. */
+    private void initSyncManager() {
+        if (syncManager != null || project == null) {
+            return;
+        }
+        syncManager = new SynchronizationManager(this, project.getId());
+        syncManager.addListener(new SynchronizationListener() {
+            @Override
+            public void onSyncStateChanged(SynchronizationState state) {
+            }
+
+            @Override
+            public void onConflictDetected(ConflictRecord record) {
+                ConflictDialogController dialogController =
+                        new ConflictDialogController(EditorActivity.this,
+                                (conflict, resolution) -> {
+                                    if (resolution
+                                            == ConflictResolution.REVIEW) {
+                                        new ConflictDialogController(
+                                                EditorActivity.this, null)
+                                                .showPreview(
+                                                        java.util.Arrays.asList(
+                                                                "Visual: "
+                                                                        + conflict
+                                                                        .getVisualValue(),
+                                                                "Code: "
+                                                                        + conflict
+                                                                        .getCodeValue()));
+                                        return;
+                                    }
+                                    syncManager.resolveConflict(conflict,
+                                            resolution);
+                                });
+                dialogController.show(record);
+            }
+
+            @Override
+            public void onSyncCompleted(SynchronizationResult result) {
+            }
+        });
+        VisualEditorRefreshManager.register(request -> {
+            if (screen != null && request.getScreenId() != null
+                    && request.getScreenId().equals(screen.getId())) {
+                loadDocument();
+            }
+        });
+    }
+
+    /** Phase 11: sync status dialog (status, sync now, review,
+     * history, settings). */
+    private void showSyncStatusDialog() {
+        if (syncManager == null) {
+            Toast.makeText(this, R.string.sync_not_ready,
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+        android.view.View view = android.view.LayoutInflater.from(this)
+                .inflate(R.layout.layout_sync_status, null);
+        SyncStatusController statusController =
+                new SyncStatusController(view,
+                        new SyncStatusController.StatusListener() {
+                            @Override
+                            public void onSyncNow() {
+                                syncManager.synchronizeNow();
+                            }
+
+                            @Override
+                            public void onReviewChanges() {
+                                java.util.List<ConflictRecord> open =
+                                        syncManager.getConflictManager()
+                                                .getUnresolved();
+                                if (open.isEmpty()) {
+                                    Toast.makeText(EditorActivity.this,
+                                            R.string.sync_no_conflicts,
+                                            Toast.LENGTH_SHORT).show();
+                                    return;
+                                }
+                                new ConflictDialogController(
+                                        EditorActivity.this,
+                                        (conflict, resolution) ->
+                                                syncManager.resolveConflict(
+                                                        conflict, resolution))
+                                        .show(open.get(0));
+                            }
+
+                            @Override
+                            public void onOpenHistory() {
+                                android.view.View historyView =
+                                        android.view.LayoutInflater.from(
+                                                EditorActivity.this)
+                                                .inflate(
+                                                        R.layout
+                                                                .layout_sync_history,
+                                                        null);
+                                new SyncHistoryController(historyView)
+                                        .setSnapshots(syncManager.getHistory()
+                                                .getSnapshots());
+                                new AlertDialog.Builder(EditorActivity.this)
+                                        .setTitle(R.string.sync_history)
+                                        .setView(historyView)
+                                        .setPositiveButton(
+                                                android.R.string.ok, null)
+                                        .show();
+                            }
+
+                            @Override
+                            public void onOpenSettings() {
+                                new SyncSettingsController(
+                                        EditorActivity.this,
+                                        syncManager.getPolicy())
+                                        .showDialog();
+                            }
+                        });
+        statusController.refresh(syncManager.getState());
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.sync_status_title)
+                .setView(view)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
     }
 
     private void showScreensDialog() {

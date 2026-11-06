@@ -41,6 +41,114 @@
             android:label="@string/code_studio_title"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".ui.export.ExportActivity"
+            android:exported="false"
+            android:label="@string/export_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.build.BuildActivity"
+            android:exported="false"
+            android:label="@string/build_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.codeeditor.CodeEditorActivity"
+            android:exported="false"
+            android:label="@string/editor_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.library.ComponentLibraryActivity"
+            android:exported="false"
+            android:label="@string/library_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.library.CustomComponentEditorActivity"
+            android:exported="false"
+            android:label="@string/library_custom_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.library.TemplateGalleryActivity"
+            android:exported="false"
+            android:label="@string/library_templates_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.library.TemplateEditorActivity"
+            android:exported="false"
+            android:label="@string/library_template_edit_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.library.DesignSystemActivity"
+            android:exported="false"
+            android:label="@string/library_design_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.assets.AssetManagerActivity"
+            android:exported="false"
+            android:label="@string/asset_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.assets.ImageEditorActivity"
+            android:exported="false"
+            android:label="@string/asset_image_editor_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.assets.DrawableEditorActivity"
+            android:exported="false"
+            android:label="@string/asset_drawable_editor_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.assets.VectorEditorActivity"
+            android:exported="false"
+            android:label="@string/asset_vector_editor_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.assets.FontManagerActivity"
+            android:exported="false"
+            android:label="@string/asset_fonts_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.assets.ColorResourceActivity"
+            android:exported="false"
+            android:label="@string/asset_colors_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.flow.NavigationDesignerActivity"
+            android:exported="false"
+            android:label="@string/flow_navigation_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.flow.FlowEditorActivity"
+            android:exported="false"
+            android:label="@string/flow_editor_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.flow.EventEditorActivity"
+            android:exported="false"
+            android:label="@string/flow_event_editor_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.flow.TransitionEditorActivity"
+            android:exported="false"
+            android:label="@string/flow_transition_title"
+            android:windowSoftInputMode="adjustResize" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="com.nobi.appbuilder.fileprovider"

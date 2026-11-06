@@ -37,6 +37,11 @@ public final class ComponentRegistry {
         register(CheckBoxComponent.definition());
         register(SwitchComponent.definition());
         register(ProgressBarComponent.definition());
+        register(RadioButtonComponent.definition());
+        register(SpinnerComponent.definition());
+        register(RatingBarComponent.definition());
+        register(SeekBarComponent.definition());
+        register(DividerComponent.definition());
         register(cardViewDefinition());
     }
 

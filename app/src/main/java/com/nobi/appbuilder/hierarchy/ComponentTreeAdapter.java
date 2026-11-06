@@ -61,7 +61,11 @@ public class ComponentTreeAdapter
     public void onBindViewHolder(@NonNull RowHolder holder, int position) {
         ComponentTreeNode node = controller.getFlatNodes().get(position);
         ComponentModel model = node.getModel();
-        holder.label.setText(model.getType() + " — " + model.getId());
+        // Phase 14: ⚡ marks components that carry at least one event.
+        boolean hasEvents = model.getEvents() != null
+                && !model.getEvents().isEmpty();
+        holder.label.setText(model.getType() + " — " + model.getId()
+                + (hasEvents ? "  ⚡" : ""));
         holder.thumb.setText(model.getType() == null || model.getType().isEmpty()
                 ? "?" : model.getType().substring(0, 1).toUpperCase());
         int indentPx = (int) (node.getDepth() * 28

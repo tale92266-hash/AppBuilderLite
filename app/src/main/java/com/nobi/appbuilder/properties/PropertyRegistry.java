@@ -12,7 +12,8 @@ import java.util.List;
 public final class PropertyRegistry {
 
     private static final String[] TEXT_TYPES = {
-            "TextView", "Button", "EditText", "CheckBox", "Switch"
+            "TextView", "Button", "EditText", "CheckBox", "Switch",
+            "RadioButton", "Spinner"
     };
     private static final String[] CONTAINER_TYPES = {
             "LinearLayout", "FrameLayout", "ConstraintLayout", "ScrollView", "MaterialCardView"
@@ -277,21 +278,28 @@ public final class PropertyRegistry {
                 PropertyGroup.GENERAL, PropertyType.BOOLEAN)
                 .defaultValue("false")
                 .xmlAttribute("android:checked")
-                .appliesTo("CheckBox", "Switch")
+                .appliesTo("CheckBox", "Switch", "RadioButton")
                 .build());
         ALL.add(new PropertyDefinition.Builder("max", "Max value",
                 PropertyGroup.GENERAL, PropertyType.INTEGER)
                 .defaultValue("100")
                 .range(1, 10000)
                 .xmlAttribute("android:max")
-                .appliesTo("ProgressBar")
+                .appliesTo("ProgressBar", "RatingBar", "SeekBar")
                 .build());
         ALL.add(new PropertyDefinition.Builder("progress", "Progress",
                 PropertyGroup.GENERAL, PropertyType.INTEGER)
                 .defaultValue("0")
                 .range(0, 10000)
                 .xmlAttribute("android:progress")
-                .appliesTo("ProgressBar")
+                .appliesTo("ProgressBar", "SeekBar")
+                .build());
+        ALL.add(new PropertyDefinition.Builder("rating", "Rating",
+                PropertyGroup.GENERAL, PropertyType.FLOAT)
+                .defaultValue("3")
+                .range(0, 5)
+                .xmlAttribute("android:rating")
+                .appliesTo("RatingBar")
                 .build());
         ALL.add(new PropertyDefinition.Builder("indeterminate", "Indeterminate",
                 PropertyGroup.GENERAL, PropertyType.BOOLEAN)

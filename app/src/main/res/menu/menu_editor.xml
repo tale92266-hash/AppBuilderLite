@@ -51,4 +51,49 @@
         android:icon="@drawable/ic_code"
         android:title="@string/action_view_code"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/action_export"
+        android:icon="@drawable/ic_export"
+        android:title="@string/action_export"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_build"
+        android:icon="@drawable/ic_build"
+        android:title="@string/action_build"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_code_editor"
+        android:icon="@drawable/ic_code"
+        android:title="@string/action_code_editor"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_sync_status"
+        android:icon="@drawable/ic_sync"
+        android:title="@string/action_sync_status"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_assets"
+        android:icon="@drawable/ic_import"
+        android:title="@string/action_assets"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_navigation"
+        android:icon="@drawable/ic_screens"
+        android:title="@string/action_navigation"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_library"
+        android:icon="@drawable/ic_folder"
+        android:title="@string/action_library"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_templates"
+        android:icon="@drawable/ic_import"
+        android:title="@string/action_templates"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_design_system"
+        android:icon="@drawable/ic_theme"
+        android:title="@string/action_design_system"
+        app:showAsAction="never" />
 </menu>

@@ -16,9 +16,14 @@ import com.nobi.appbuilder.preview.components.EditTextPreview;
 import com.nobi.appbuilder.preview.components.FrameLayoutPreview;
 import com.nobi.appbuilder.preview.components.ImageViewPreview;
 import com.nobi.appbuilder.preview.components.LinearLayoutPreview;
+import com.nobi.appbuilder.preview.components.DividerPreview;
 import com.nobi.appbuilder.preview.components.MaterialCardViewPreview;
 import com.nobi.appbuilder.preview.components.ProgressBarPreview;
+import com.nobi.appbuilder.preview.components.RadioButtonPreview;
+import com.nobi.appbuilder.preview.components.RatingBarPreview;
 import com.nobi.appbuilder.preview.components.ScrollViewPreview;
+import com.nobi.appbuilder.preview.components.SeekBarPreview;
+import com.nobi.appbuilder.preview.components.SpinnerPreview;
 import com.nobi.appbuilder.preview.components.SwitchPreview;
 import com.nobi.appbuilder.preview.components.TextViewPreview;
 import com.nobi.appbuilder.utils.DimensionUtils;
@@ -125,6 +130,25 @@ public class PreviewComponentFactory {
             case "ProgressBar":
                 ProgressBarPreview.apply(context, model,
                         (android.widget.ProgressBar) view, ctx);
+                break;
+            case "RadioButton":
+                RadioButtonPreview.apply(context, model,
+                        (android.widget.RadioButton) view, ctx);
+                break;
+            case "Spinner":
+                SpinnerPreview.apply(context, model,
+                        (android.widget.Spinner) view, ctx);
+                break;
+            case "RatingBar":
+                RatingBarPreview.apply(context, model,
+                        (android.widget.RatingBar) view, ctx);
+                break;
+            case "SeekBar":
+                SeekBarPreview.apply(context, model,
+                        (android.widget.SeekBar) view, ctx);
+                break;
+            case "Divider":
+                DividerPreview.apply(context, model, view, ctx);
                 break;
             case "MaterialCardView":
                 MaterialCardViewPreview.apply(context, model,

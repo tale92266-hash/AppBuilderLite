@@ -8,7 +8,11 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
+import android.widget.RatingBar;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
+import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 
@@ -64,6 +68,16 @@ public class PreviewViewFactory {
                 }
                 return new ProgressBar(context);
             }
+            case "RadioButton":
+                return new RadioButton(context);
+            case "Spinner":
+                return new Spinner(context);
+            case "RatingBar":
+                return new RatingBar(context);
+            case "SeekBar":
+                return new SeekBar(context);
+            case "Divider":
+                return new View(context);
             case "MaterialCardView":
                 return new MaterialCardView(context);
             default:

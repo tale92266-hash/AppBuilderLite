@@ -9,6 +9,10 @@
         <item>API 33 (Android 13)</item>
         <item>API 34 (Android 14)</item>
     </string-array>
+    <string-array name="build_types">
+        <item>Debug APK</item>
+        <item>Release APK</item>
+    </string-array>
     <integer-array name="min_sdk_values">
         <item>26</item>
         <item>28</item>

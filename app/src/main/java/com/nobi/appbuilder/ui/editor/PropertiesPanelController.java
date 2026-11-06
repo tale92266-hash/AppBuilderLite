@@ -11,10 +11,13 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.nobi.appbuilder.R;
+import com.nobi.appbuilder.events.EventDefinition;
+import com.nobi.appbuilder.events.EventTrigger;
 import com.nobi.appbuilder.history.CommandManager;
 import com.nobi.appbuilder.history.CommandTransaction;
 import com.nobi.appbuilder.history.UpdatePropertyCommand;
 import com.nobi.appbuilder.model.ComponentModel;
+import com.nobi.appbuilder.model.EventModel;
 import com.nobi.appbuilder.properties.PropertyChangeListener;
 import com.nobi.appbuilder.properties.PropertyController;
 import com.nobi.appbuilder.properties.PropertyDefinition;
@@ -48,6 +51,11 @@ public class PropertiesPanelController {
         void onPropertyValidationFailed(PropertyDefinition definition, String error);
     }
 
+    /** Phase 14: opens the event editor for one trigger. */
+    public interface EventsOpener {
+        void openEventEditor(ComponentModel model, String trigger);
+    }
+
     private static class Row {
         boolean header;
         String headerTitle;
@@ -55,6 +63,11 @@ public class PropertiesPanelController {
         PropertyController.Editor editor;
         View editorView;
         TextView errorView;
+        /** Phase 14: an Events-section row (On Click / On Long Click /
+         * Text Changed). Tapping it opens the event editor. */
+        boolean eventRow;
+        String eventTrigger;
+        String eventSummary;
     }
 
     private final View panel;
@@ -68,6 +81,12 @@ public class PropertiesPanelController {
     private ComponentModel root;
     /** Phase 5: when set, property edits run as UpdatePropertyCommands. */
     private CommandManager.CommandRunner commandRunner;
+    /** Phase 14: opens the event editor from the Events section. */
+    private EventsOpener eventsOpener;
+
+    public void setEventsOpener(EventsOpener eventsOpener) {
+        this.eventsOpener = eventsOpener;
+    }
 
     public void setCommandRunner(CommandManager.CommandRunner commandRunner) {
         this.commandRunner = commandRunner;
@@ -225,6 +244,30 @@ public class PropertiesPanelController {
             }
             rows.add(row);
         }
+        // Phase 14: Events section — one row per trigger. A bound event
+        // shows ● + its action; an unbound trigger shows ○. Tapping a
+        // row opens the event editor for that trigger.
+        Row eventsHeader = new Row();
+        eventsHeader.header = true;
+        eventsHeader.headerTitle = "Events";
+        rows.add(eventsHeader);
+        for (String trigger : new String[]{EventModel.EVENT_CLICK,
+                EventModel.EVENT_LONG_CLICK, EventModel.EVENT_TEXT_CHANGED}) {
+            Row eventRow = new Row();
+            eventRow.eventRow = true;
+            eventRow.eventTrigger = trigger;
+            EventDefinition bound = null;
+            for (EventModel event : currentModel.getEvents()) {
+                if (trigger.equals(event.getEventType())) {
+                    bound = EventDefinition.fromEventModel(event);
+                    break;
+                }
+            }
+            eventRow.eventSummary = bound == null
+                    ? "○ No event — tap to add"
+                    : "● " + bound.summary();
+            rows.add(eventRow);
+        }
         adapter.notifyDataSetChanged();
     }
 
@@ -274,10 +317,15 @@ public class PropertiesPanelController {
 
         private static final int VIEW_HEADER = 0;
         private static final int VIEW_PROPERTY = 1;
+        private static final int VIEW_EVENT = 2;
 
         @Override
         public int getItemViewType(int position) {
-            return rows.get(position).header ? VIEW_HEADER : VIEW_PROPERTY;
+            Row row = rows.get(position);
+            if (row.header) {
+                return VIEW_HEADER;
+            }
+            return row.eventRow ? VIEW_EVENT : VIEW_PROPERTY;
         }
 
         @NonNull
@@ -301,6 +349,23 @@ public class PropertiesPanelController {
                 return;
             }
             PropertyHolder propertyHolder = (PropertyHolder) holder;
+            if (row.eventRow) {
+                propertyHolder.label.setText(
+                        EventTrigger.displayName(row.eventTrigger));
+                propertyHolder.container.removeAllViews();
+                TextView summary = new TextView(holder.itemView.getContext());
+                summary.setText(row.eventSummary);
+                propertyHolder.container.addView(summary);
+                propertyHolder.error.setVisibility(View.GONE);
+                holder.itemView.setOnClickListener(v -> {
+                    if (eventsOpener != null && currentModel != null) {
+                        eventsOpener.openEventEditor(currentModel,
+                                row.eventTrigger);
+                    }
+                });
+                return;
+            }
+            holder.itemView.setOnClickListener(null);
             propertyHolder.label.setText(row.definition.getDisplayName());
             propertyHolder.container.removeAllViews();
             if (row.editor != null) {

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar_flow_editor"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+        android:title="@string/flow_editor_title" />
+
+    <include
+        android:id="@+id/layout_flow_toolbar"
+        layout="@layout/layout_flow_toolbar" />
+
+    <com.nobi.appbuilder.ui.flow.FlowCanvasView
+        android:id="@+id/canvas_flow"
+        android:layout_width="match_parent"
+        android:layout_height="260dp"
+        android:background="#F5F5F5" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_flow_nodes"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="8dp" />
+
+    <include
+        android:id="@+id/layout_flow_properties"
+        layout="@layout/layout_flow_properties" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp">
+
+        <Button
+            android:id="@+id/btn_flow_add_node"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/flow_add_node" />
+
+        <Button
+            android:id="@+id/btn_flow_delete_node"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/flow_delete_node" />
+    </LinearLayout>
+
+</LinearLayout>

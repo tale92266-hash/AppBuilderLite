@@ -3,4 +3,5 @@
     <files-path name="project_files" path="projects/" />
     <cache-path name="project_cache" path="export/" />
     <external-files-path name="project_exports" path="exports/" />
+    <external-files-path name="project_builds" path="builds/" />
 </paths>

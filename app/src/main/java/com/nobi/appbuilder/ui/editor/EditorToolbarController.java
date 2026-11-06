@@ -31,6 +31,24 @@ public class EditorToolbarController {
         void onPreview();
 
         void onCode();
+
+        void onExport();
+
+        void onBuild();
+
+        void onCodeEditor();
+
+        void onSyncStatus();
+
+        void onLibrary();
+
+        void onTemplates();
+
+        void onDesignSystem();
+
+        void onAssets();
+
+        void onNavigation();
     }
 
     private final MaterialToolbar toolbar;
@@ -78,6 +96,42 @@ public class EditorToolbarController {
             }
             if (id == R.id.action_code) {
                 listener.onCode();
+                return true;
+            }
+            if (id == R.id.action_export) {
+                listener.onExport();
+                return true;
+            }
+            if (id == R.id.action_build) {
+                listener.onBuild();
+                return true;
+            }
+            if (id == R.id.action_code_editor) {
+                listener.onCodeEditor();
+                return true;
+            }
+            if (id == R.id.action_sync_status) {
+                listener.onSyncStatus();
+                return true;
+            }
+            if (id == R.id.action_library) {
+                listener.onLibrary();
+                return true;
+            }
+            if (id == R.id.action_templates) {
+                listener.onTemplates();
+                return true;
+            }
+            if (id == R.id.action_design_system) {
+                listener.onDesignSystem();
+                return true;
+            }
+            if (id == R.id.action_assets) {
+                listener.onAssets();
+                return true;
+            }
+            if (id == R.id.action_navigation) {
+                listener.onNavigation();
                 return true;
             }
             return false;

@@ -321,6 +321,25 @@ public class PreviewActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        // Phase 11: live reload — a sync change re-renders the
+        // current screen without restarting the preview.
+        com.nobi.appbuilder.sync.reload.PreviewRefreshManager.register(
+                request -> {
+                    if (controller != null) {
+                        controller.renderCurrent();
+                    }
+                });
+    }
+
+    @Override
+    protected void onPause() {
+        com.nobi.appbuilder.sync.reload.PreviewRefreshManager.unregister();
+        super.onPause();
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         if (controller != null) {

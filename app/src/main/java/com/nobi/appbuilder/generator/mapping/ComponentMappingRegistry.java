@@ -22,6 +22,9 @@ public final class ComponentMappingRegistry {
                 return "androidx.constraintlayout.widget.ConstraintLayout";
             case "MaterialCardView":
                 return "com.google.android.material.card.MaterialCardView";
+            case "Divider":
+                // A divider is a plain View with a background color.
+                return "View";
             default:
                 return type;
         }
@@ -55,6 +58,16 @@ public final class ComponentMappingRegistry {
                 return "Switch";
             case "ProgressBar":
                 return "ProgressBar";
+            case "RadioButton":
+                return "RadioButton";
+            case "Spinner":
+                return "Spinner";
+            case "RatingBar":
+                return "RatingBar";
+            case "SeekBar":
+                return "SeekBar";
+            case "Divider":
+                return "View";
             case "MaterialCardView":
                 return "MaterialCardView";
             default:
