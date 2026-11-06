@@ -1,5 +1,6 @@
 package com.nobi.appbuilder.ui.dashboard;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
@@ -45,6 +46,7 @@ import com.nobi.appbuilder.model.ComponentModel;
 import com.nobi.appbuilder.model.ProjectModel;
 import com.nobi.appbuilder.model.ScreenModel;
 import com.nobi.appbuilder.repository.DocumentRepository;
+import com.nobi.appbuilder.ui.editor.EditorActivity;
 import com.nobi.appbuilder.utils.FileUtils;
 import com.nobi.appbuilder.utils.IDGenerator;
 
@@ -330,12 +332,44 @@ public class DashboardActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle(R.string.dialog_details_title)
                 .setView(view)
-                .setPositiveButton(R.string.action_rename,
-                        (d, w) -> showRenameDialog(project))
+                .setPositiveButton(R.string.action_open_editor,
+                        (d, w) -> openEditor(project))
                 .setNegativeButton(R.string.action_delete,
                         (d, w) -> confirmDelete(project))
                 .setNeutralButton(R.string.action_cancel, null)
                 .show();
+    }
+
+    /** Opens the project in the Phase 3 visual editor (launcher screen). */
+    private void openEditor(ProjectModel project) {
+        executor.execute(() -> {
+            IRDocument document = new DocumentRepository(dbHelper)
+                    .loadDocument(project.getId());
+            ScreenModel target = null;
+            if (document != null) {
+                for (ScreenModel screen : document.getScreens()) {
+                    if (screen.isLauncher()) {
+                        target = screen;
+                        break;
+                    }
+                }
+                if (target == null && !document.getScreens().isEmpty()) {
+                    target = document.getScreens().get(0);
+                }
+            }
+            final ScreenModel screen = target;
+            mainHandler.post(() -> {
+                if (screen == null) {
+                    Toast.makeText(this, R.string.msg_editor_no_screen,
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+                Intent intent = new Intent(this, EditorActivity.class);
+                intent.putExtra(EditorActivity.EXTRA_PROJECT_ID, project.getId());
+                intent.putExtra(EditorActivity.EXTRA_SCREEN_ID, screen.getId());
+                startActivity(intent);
+            });
+        });
     }
 
     private void showRenameDialog(ProjectModel project) {
@@ -560,7 +594,7 @@ public class DashboardActivity extends AppCompatActivity {
             menu.setOnMenuItemClickListener(item -> {
                 int id = item.getItemId();
                 if (id == MENU_OPEN) {
-                    showDetailsDialog(project);
+                    openEditor(project);
                 } else if (id == MENU_RENAME) {
                     showRenameDialog(project);
                 } else if (id == MENU_DUPLICATE) {

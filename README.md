@@ -64,9 +64,42 @@ document is now the single source of truth for all designs.
   are rejected with a reason); new projects start from
   `ComponentFactory.createRootContainer()`
 
-**Not in Phase 2 (later phases)**
+## Phase 3 — DONE (2026-11-06)
 
-- Phase 3: Canvas editor + drag-and-drop (`DesignCanvasView`)
+Professional visual canvas editor (drag-and-drop Android UI designer).
+
+**Included**
+
+- `editor/` — `DesignCanvasView` (custom View), `CanvasRenderer`
+  (renders every component through its Phase 2 definition, pooled
+  Paints/RectFs, zero per-frame allocation), `CanvasViewport` +
+  `CanvasTransform` (dp design coords; pinch/double-tap/button zoom
+  25–300% around the focal point, pan, fit-to-screen), `CanvasGridRenderer`
+  (8dp grid, 40dp major lines), `CanvasState` (selection, tool,
+  clipboard, hierarchy expansion — never saved to JSON),
+  `ComponentHitTester` (deepest topmost hit, MATCH_PARENT/WRAP_CONTENT
+  bounds), `SnapEngine` + `AlignmentEngine` (grid + edge/centre guides,
+  threshold-limited, clamped to parent), `SelectionController` (tap,
+  additive, 8 handles), `DragController` (multi-move, subtree moves,
+  library drop into the deepest valid container), `ResizeController`
+  (8 handles, min sizes, grid snap, ImageView aspect lock),
+  `GestureController` (touch state machine, touch-slop tap-vs-drag,
+  long-press menu) + tools `SelectionTool`/`HandTool`/`DragTool`
+- `ui/editor/` — `EditorActivity` (load/save via DocumentRepository,
+  debounced 800ms autosave, snapshot undo/redo, context menu:
+  duplicate/copy/paste/delete/bring forward/send backward/rename ID),
+  `EditorToolbarController`, `ComponentPanelController` (searchable
+  library, tap-to-add + real drag-and-drop), `HierarchyController`
+  (expandable tree, canvas-synced selection), `EditorPanelController`
+  (collapsible bottom panel with live selection info)
+- Dashboard: project menu and details dialog now open the editor
+  (launcher screen); `EditorActivity` registered in the manifest
+
+**Not in Phase 3 (later phases)**
+
+- Phase 4: Properties inspector + event binding
+- Phase 5: Command-pattern undo/redo (replaces the snapshot stack)
+- Phase 6: Live preview renderer
 - Phase 4: Properties inspector + hierarchy
 - Phase 5: Undo/redo + autosave
 - Phase 6: Native preview renderer
