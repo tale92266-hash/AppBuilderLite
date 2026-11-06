@@ -49,15 +49,18 @@ public final class EditTextComponent {
         paint.setTextSize(textSizePx);
         paint.setTextAlign(Paint.Align.LEFT);
         String text = model.getProperty("text", "");
-        float y = bounds.centerY() + textSizePx * 0.35f;
+        float padLeft = Math.max(4, model.getLayout().getPaddingLeft()) * density;
+        float padShiftY = (model.getLayout().getPaddingTop()
+                - model.getLayout().getPaddingBottom()) / 2f * density;
+        float y = bounds.centerY() + textSizePx * 0.35f + padShiftY;
         if (text.isEmpty()) {
             paint.setColor(Color.parseColor("#9CA3AF"));
             canvas.drawText(model.getProperty("hint", "Enter text"),
-                    bounds.left + 4 * density, y, paint);
+                    bounds.left + padLeft, y, paint);
         } else {
             paint.setColor(ComponentDefinition.parseColor(
                     model.getProperty("textColor"), Color.BLACK));
-            canvas.drawText(text, bounds.left + 4 * density, y, paint);
+            canvas.drawText(text, bounds.left + padLeft, y, paint);
         }
         paint.setColor(Color.parseColor("#0B4499"));
         paint.setStrokeWidth(2 * density);

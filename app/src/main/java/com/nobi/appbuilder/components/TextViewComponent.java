@@ -53,17 +53,21 @@ public final class TextViewComponent {
                 model.getProperty("textColor"), Color.BLACK));
         paint.setTextSize(textSizePx);
         String gravity = model.getProperty("gravity", "left");
-        float x = bounds.left + 4 * density;
+        float padLeft = Math.max(4, model.getLayout().getPaddingLeft()) * density;
+        float padRight = Math.max(4, model.getLayout().getPaddingRight()) * density;
+        float padShiftY = (model.getLayout().getPaddingTop()
+                - model.getLayout().getPaddingBottom()) / 2f * density;
+        float x = bounds.left + padLeft;
         if ("center".equals(gravity)) {
             paint.setTextAlign(Paint.Align.CENTER);
             x = bounds.centerX();
         } else if ("right".equals(gravity) || "end".equals(gravity)) {
             paint.setTextAlign(Paint.Align.RIGHT);
-            x = bounds.right - 4 * density;
+            x = bounds.right - padRight;
         } else {
             paint.setTextAlign(Paint.Align.LEFT);
         }
-        float y = bounds.centerY() + textSizePx * 0.35f;
+        float y = bounds.centerY() + textSizePx * 0.35f + padShiftY;
         canvas.drawText(model.getProperty("text", "TextView"), x, y, paint);
     }
 

@@ -55,8 +55,8 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
 
     private DesignCanvasView canvasView;
     private EditorToolbarController toolbarController;
-    private HierarchyController hierarchyController;
-    private EditorPanelController panelController;
+    private HierarchyPanelController hierarchyPanelController;
+    private PropertiesPanelController propertiesPanelController;
     private TextView zoomLabel;
     private View libraryPanel;
 
@@ -136,27 +136,75 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
                     }
                 });
 
-        hierarchyController = new HierarchyController(
+        hierarchyPanelController = new HierarchyPanelController(
+                findViewById(R.id.hierarchy_header),
                 findViewById(R.id.hierarchy_recycler),
+                findViewById(R.id.hierarchy_chevron),
+                findViewById(R.id.hierarchy_info),
+                findViewById(R.id.hierarchy_search),
                 canvasView.getState(),
-                new HierarchyController.HierarchyListener() {
+                new HierarchyPanelController.HierarchyPanelListener() {
                     @Override
                     public void onHierarchySelect(String componentId) {
                         canvasView.invalidate();
                         updateSelectedInfo();
+                        syncPropertiesPanel();
                     }
 
                     @Override
                     public void onHierarchyLongPress(ComponentModel model) {
                         showContextMenu(model);
                     }
+
+                    @Override
+                    public void onMutationStarting() {
+                        pushUndoSnapshot();
+                    }
+
+                    @Override
+                    public void onDocumentCommitted() {
+                        scheduleAutosave();
+                        hierarchyPanelController.refresh();
+                        updateSelectedInfo();
+                        updateUndoRedoState();
+                        canvasView.invalidate();
+                    }
+
+                    @Override
+                    public void onTreeError(String message) {
+                        Toast.makeText(EditorActivity.this, message,
+                                Toast.LENGTH_SHORT).show();
+                    }
                 });
 
-        panelController = new EditorPanelController(
-                findViewById(R.id.hierarchy_header),
-                findViewById(R.id.hierarchy_recycler),
-                findViewById(R.id.hierarchy_chevron),
-                findViewById(R.id.hierarchy_info));
+        propertiesPanelController = new PropertiesPanelController(
+                findViewById(R.id.properties_panel),
+                findViewById(R.id.properties_recycler),
+                findViewById(R.id.text_properties_title),
+                findViewById(R.id.button_properties_reset),
+                findViewById(R.id.button_properties_close),
+                new PropertiesPanelController.PropertiesListener() {
+                    @Override
+                    public void onPropertyChangeStarting() {
+                        pushUndoSnapshot();
+                    }
+
+                    @Override
+                    public void onPropertyChanged() {
+                        canvasView.invalidate();
+                        scheduleAutosave();
+                        hierarchyPanelController.refresh();
+                        updateUndoRedoState();
+                    }
+
+                    @Override
+                    public void onPropertyValidationFailed(
+                            com.nobi.appbuilder.properties.PropertyDefinition definition,
+                            String error) {
+                        Toast.makeText(EditorActivity.this, error,
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
 
         MaterialButtonToggleGroup toolToggle = findViewById(R.id.toggle_tools);
         toolToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
@@ -228,7 +276,7 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
                 loaded = true;
                 toolbarController.setTitle(project.getAppName() + " — " + screen.getName());
                 canvasView.setScreen(screen, root);
-                hierarchyController.refresh();
+                hierarchyPanelController.refresh();
                 updateSelectedInfo();
                 updateZoomLabel();
                 undoStack.clear();
@@ -256,15 +304,31 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
     @Override
     public void onDocumentCommitted() {
         scheduleAutosave();
-        hierarchyController.refresh();
+        hierarchyPanelController.refresh();
+        propertiesPanelController.refreshValues();
         updateSelectedInfo();
         updateUndoRedoState();
     }
 
     @Override
     public void onSelectionChanged() {
-        hierarchyController.syncSelection();
+        hierarchyPanelController.syncSelection();
         updateSelectedInfo();
+        syncPropertiesPanel();
+    }
+
+    /** Shows the properties panel for a single selection, hides it otherwise. */
+    private void syncPropertiesPanel() {
+        CanvasState state = canvasView.getState();
+        if (state == null || propertiesPanelController == null) {
+            return;
+        }
+        ComponentModel single = state.getSingleSelection();
+        if (single != null && state.getRoot() != null) {
+            propertiesPanelController.show(single, state.getRoot());
+        } else {
+            propertiesPanelController.hide();
+        }
     }
 
     @Override
@@ -331,7 +395,8 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
             screen.setRootComponent(restored);
             canvasView.getState().setRoot(restored);
             canvasView.invalidate();
-            hierarchyController.refresh();
+            hierarchyPanelController.refresh();
+            syncPropertiesPanel();
             updateSelectedInfo();
             scheduleAutosave();
         } catch (Exception e) {
@@ -464,7 +529,8 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
                     model.setId(newId);
                     canvasView.getState().select(newId);
                     canvasView.invalidate();
-                    hierarchyController.refresh();
+                    hierarchyPanelController.refresh();
+                    propertiesPanelController.refreshValues();
                     updateSelectedInfo();
                     scheduleAutosave();
                 })
@@ -478,12 +544,13 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
             return;
         }
         if (!state.hasSelection()) {
-            panelController.setSelectedInfo(getString(R.string.info_no_selection));
+            hierarchyPanelController.setSelectedInfo(
+                    getString(R.string.info_no_selection));
             return;
         }
         ComponentModel single = state.getSingleSelection();
         if (single == null) {
-            panelController.setSelectedInfo(
+            hierarchyPanelController.setSelectedInfo(
                     getString(R.string.info_multi_selection, state.getSelectedIds().size()));
             return;
         }
@@ -493,10 +560,11 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
         RectF bounds = root == null ? null
                 : ComponentHitTester.resolveBoundsFor(root, single.getId(), screenBounds);
         if (bounds == null) {
-            panelController.setSelectedInfo(single.getType() + " — " + single.getId());
+            hierarchyPanelController.setSelectedInfo(
+                    single.getType() + " — " + single.getId());
             return;
         }
-        panelController.setSelectedInfo(getString(R.string.info_selected,
+        hierarchyPanelController.setSelectedInfo(getString(R.string.info_selected,
                 single.getType(), single.getId(),
                 Math.round(bounds.width()), Math.round(bounds.height()),
                 Math.round(bounds.left), Math.round(bounds.top)));

@@ -97,18 +97,77 @@ Professional visual canvas editor (drag-and-drop Android UI designer).
 
 **Not in Phase 3 (later phases)**
 
-- Phase 4: Properties inspector + event binding
+- Phase 4: Properties inspector + hierarchy
 - Phase 5: Command-pattern undo/redo (replaces the snapshot stack)
 - Phase 6: Live preview renderer
-- Phase 4: Properties inspector + hierarchy
-- Phase 5: Undo/redo + autosave
-- Phase 6: Native preview renderer
 - Phase 7: XML + Java generators
 - Phase 8: Full Android Studio project export as ZIP
 - Phase 9: Testing + performance
 
-Tapping a project card opens its details dialog. The visual editor
-(Phase 3) will be wired to the card tap then.
+## Phase 4 — DONE (2026-11-06)
+
+Properties inspector + advanced component hierarchy.
+
+**Included**
+
+- `properties/` — schema-driven inspector: `PropertyType` (10 types),
+  `PropertyGroup` (General/Layout/Spacing/Appearance/Typography/Advanced),
+  `PropertyValue` (typed wrapper), `PropertyDefinition` (builder),
+  `PropertyRegistry` (full schema for all 12 component types, only
+  relevant properties per type; constraint fields only under
+  ConstraintLayout; `xmlAttribute` mapping per property for Phase 7),
+  `PropertyValidator` (id uniqueness, colour/dimension formats, ranges),
+  `PropertyBinding` (strict separation: model fields / LayoutModel /
+  editorMetadata; unknown properties preserved),
+  `PropertyController` (validate → apply → notify; integrates with the
+  existing snapshot undo stack — the spec's command classes belong to
+  Phase 5, so none are created here), `PropertyChangeListener`
+- `properties/editors/` — 7 real editors, no placeholders:
+  `TextPropertyEditor` (debounced live text), `ColorPropertyEditor`
+  (HEX + swatch + presets + recent colours), `DimensionPropertyEditor`
+  (dp/sp + match_parent/wrap_content), `NumberPropertyEditor`
+  (+/− buttons, min/max clamp), `BooleanPropertyEditor` (switch),
+  `EnumPropertyEditor` (dropdown), `ResourcePropertyEditor`
+  (reference field + preset list)
+- `hierarchy/` — `ComponentTreeNode`, `ComponentTreeAdapter`
+  (thumb, id label, expand arrow, eye + lock toggles),
+  `ComponentTreeController` (tree build from CanvasState, rename with
+  validation, delete/duplicate/copy/paste, reorder, reparent),
+  `HierarchyDragController` (ItemTouchHelper: reorder siblings, drop
+  onto a container to reparent; one undo snapshot per drag),
+  `HierarchyValidator` (container rules, no cycles, ScrollView
+  single-child, duplicate ids — readable errors, never silent)
+- `ui/editor/` — `PropertiesPanelController` (right-side overlay panel,
+  grouped rows, live canvas refresh + debounced autosave on every
+  change, Reset to defaults, panel survives typing without losing
+  scroll/focus) and `HierarchyPanelController` (collapsible bottom
+  panel + search + selection info + drag). Supersedes the Phase 3
+  `HierarchyController` and `EditorPanelController` (deleted).
+- Canvas integration: `visibility` (visible/invisible/gone) and
+  `alpha` now render on the canvas (gone subtrees skipped in drawing
+  and hit-testing); locked components cannot be dragged, resized,
+  deleted or reordered; padding insets now shift text in the
+  TextView/Button/EditText/CheckBox/Switch canvas renderers
+
+**Not in Phase 4 (later phases)**
+
+- Phase 5: Command-pattern undo/redo (replaces the snapshot stack)
+- Phase 6: Live preview renderer
+- Phase 7: XML + Java generators (uses `PropertyRegistry.xmlAttributeFor`)
+- Phase 8: Full Android Studio project export as ZIP
+- Phase 9: Testing + performance
+
+## Signing
+
+Every debug APK is signed with one fixed key (keystore
+`~/workspace/AppBuilderLite-signing/appbuilder.p12`, alias `appbuilder`,
+cert SHA-256 `79:5D:37:29:C0:D4:CA:00:80:C5:32:2E:4F:93:62:66:AB:42:DD:70:BB:B3:E3:B1:DC:83:13:B9:BF:F2:0B:9E`).
+The keystore lives in the `APPBUILDER_KEYSTORE_*` repo secrets; the
+workflow restores it and `app/build.gradle` signs the debug build with
+it when the env vars exist. Local/ACS builds still use the default
+debug key. APKs from Phase 1–3 used ephemeral runner keys, so the
+first fixed-key APK needs one uninstall, then every later APK installs
+over the previous one.
 
 ## Build
 

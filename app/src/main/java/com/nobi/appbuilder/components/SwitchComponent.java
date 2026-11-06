@@ -42,10 +42,13 @@ public final class SwitchComponent {
     public static void drawOnCanvas(Canvas canvas, RectF bounds,
                                     ComponentModel model, float density) {
         boolean checked = "true".equals(model.getProperty("checked"));
+        float padLeft = model.getLayout().getPaddingLeft() * density;
+        float padShiftY = (model.getLayout().getPaddingTop()
+                - model.getLayout().getPaddingBottom()) / 2f * density;
         float trackW = 34 * density;
         float trackH = 20 * density;
-        float top = bounds.centerY() - trackH / 2;
-        float left = bounds.left + 2 * density;
+        float top = bounds.centerY() - trackH / 2 + padShiftY;
+        float left = bounds.left + 2 * density + padLeft;
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         paint.setColor(checked ? Color.parseColor("#0B4499")
                 : Color.parseColor("#C7CFDD"));
@@ -55,14 +58,14 @@ public final class SwitchComponent {
         float thumbCx = checked ? left + trackW - thumbR - 2 * density
                 : left + thumbR + 2 * density;
         paint.setColor(Color.WHITE);
-        canvas.drawCircle(thumbCx, bounds.centerY(), thumbR, paint);
+        canvas.drawCircle(thumbCx, bounds.centerY() + padShiftY, thumbR, paint);
         paint.setColor(ComponentDefinition.parseColor(
                 model.getProperty("textColor"), Color.BLACK));
         paint.setTextSize(ComponentDefinition.parseTextSizeSp(model, 16) * density);
         paint.setTextAlign(Paint.Align.LEFT);
         canvas.drawText(model.getProperty("text", "Switch"),
                 left + trackW + 8 * density,
-                bounds.centerY() + 5 * density, paint);
+                bounds.centerY() + 5 * density + padShiftY, paint);
     }
 
     public static View buildPreviewView(Context context, ComponentModel model) {

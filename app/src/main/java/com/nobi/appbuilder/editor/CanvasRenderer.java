@@ -30,6 +30,7 @@ public class CanvasRenderer {
     private final Paint labelBgPaint = new Paint();
     private final Paint fallbackFillPaint = new Paint();
     private final Paint fallbackTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint alphaPaint = new Paint();
     private final RectF[] rectPool = new RectF[64];
     private final Rect clipRect = new Rect();
     private final RectF clipRectF = new RectF();
@@ -90,6 +91,25 @@ public class CanvasRenderer {
         if (!RectF.intersects(screen, clipRectF)) {
             return;
         }
+        String visibility = node.getProperty("visibility", "visible");
+        if ("gone".equals(visibility)) {
+            return;
+        }
+        int layerAlpha = 255;
+        if ("invisible".equals(visibility)) {
+            layerAlpha = 77;
+        } else {
+            try {
+                float alpha = Float.parseFloat(node.getProperty("alpha", "1"));
+                layerAlpha = Math.round(Math.max(0f, Math.min(1f, alpha)) * 255);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        boolean needsLayer = layerAlpha < 255;
+        if (needsLayer) {
+            alphaPaint.setAlpha(layerAlpha);
+            canvas.saveLayer(screen, alphaPaint);
+        }
         ComponentDefinition definition = ComponentRegistry.get(node.getType());
         if (definition != null && definition.getCanvasRenderer() != null) {
             definition.getCanvasRenderer().draw(canvas, screen, node,
@@ -107,6 +127,9 @@ public class CanvasRenderer {
             for (ComponentModel child : node.getChildren()) {
                 drawNode(canvas, child, design, transform, depth + 1);
             }
+            canvas.restore();
+        }
+        if (needsLayer) {
             canvas.restore();
         }
     }

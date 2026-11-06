@@ -44,9 +44,20 @@ public class DragController {
         return currentGuides;
     }
 
-    /** Starts a drag; nested selections are reduced to their topmost nodes. */
+    /** Starts a drag; locked models are left out, nested selections are
+     * reduced to their topmost nodes. */
     public void beginDrag(List<ComponentModel> models, float designX, float designY) {
-        dragModels = topmostOnly(models);
+        List<ComponentModel> movable = new ArrayList<>();
+        for (ComponentModel model : models) {
+            if (!model.isLocked()) {
+                movable.add(model);
+            }
+        }
+        dragModels = topmostOnly(movable);
+        if (dragModels.isEmpty()) {
+            dragging = false;
+            return;
+        }
         startPositions.clear();
         for (ComponentModel model : dragModels) {
             startPositions.put(model.getId(), new float[]{model.getX(), model.getY()});

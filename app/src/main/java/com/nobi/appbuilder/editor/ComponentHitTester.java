@@ -110,6 +110,9 @@ public final class ComponentHitTester {
 
     private static ComponentModel hitTestRecursive(ComponentModel node, float designX,
                                                    float designY, RectF parentBounds) {
+        if ("gone".equals(node.getProperty("visibility", "visible"))) {
+            return null;
+        }
         RectF bounds = resolveBounds(node, parentBounds);
         List<ComponentModel> children = node.getChildren();
         for (int i = children.size() - 1; i >= 0; i--) {
@@ -137,6 +140,9 @@ public final class ComponentHitTester {
 
     private static ComponentModel findContainerRecursive(ComponentModel node, float designX,
                                                          float designY, RectF parentBounds) {
+        if ("gone".equals(node.getProperty("visibility", "visible"))) {
+            return null;
+        }
         RectF bounds = resolveBounds(node, parentBounds);
         if (designX < bounds.left || designX > bounds.right
                 || designY < bounds.top || designY > bounds.bottom) {

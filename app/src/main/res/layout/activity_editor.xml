@@ -71,6 +71,63 @@
                 android:layout_height="match_parent"
                 android:background="#EDEFF2" />
 
+            <LinearLayout
+                android:id="@+id/properties_panel"
+                android:layout_width="300dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="end"
+                android:background="?attr/colorSurface"
+                android:elevation="8dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="4dp">
+
+                    <TextView
+                        android:id="@+id/text_properties_title"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="@string/properties_title"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/button_properties_reset"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/properties_reset" />
+
+                    <ImageButton
+                        android:id="@+id/button_properties_close"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/properties_close"
+                        android:src="@drawable/ic_close" />
+
+                </LinearLayout>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/properties_recycler"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:clipToPadding="false"
+                    android:paddingBottom="8dp" />
+
+            </LinearLayout>
+
         </FrameLayout>
 
     </LinearLayout>
@@ -119,6 +176,19 @@
                 android:src="@drawable/ic_expand_more" />
 
         </LinearLayout>
+
+        <EditText
+            android:id="@+id/hierarchy_search"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_search_field"
+            android:hint="@string/hierarchy_search_hint"
+            android:inputType="text"
+            android:padding="8dp"
+            android:textSize="13sp"
+            android:visibility="gone" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/hierarchy_recycler"

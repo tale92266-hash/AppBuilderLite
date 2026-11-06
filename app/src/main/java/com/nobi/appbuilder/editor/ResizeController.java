@@ -39,7 +39,7 @@ public class ResizeController {
     public void beginResize(ComponentModel target, int handle,
                             float designX, float designY) {
         ComponentModel root = state.getRoot();
-        if (root == null || target == null) {
+        if (root == null || target == null || target.isLocked()) {
             return;
         }
         RectF screenBounds = new RectF(0, 0,

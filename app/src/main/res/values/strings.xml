@@ -56,6 +56,12 @@
     <string name="library_search_hint">Search components</string>
     <string name="hierarchy_title">Hierarchy</string>
     <string name="hierarchy_expand">Expand or collapse</string>
+    <string name="hierarchy_search_hint">Search components</string>
+    <string name="hierarchy_toggle_visibility">Show or hide</string>
+    <string name="hierarchy_toggle_lock">Lock or unlock</string>
+    <string name="properties_title">Properties</string>
+    <string name="properties_reset">Reset</string>
+    <string name="properties_close">Close properties</string>
     <string name="tool_select">Select</string>
     <string name="tool_hand">Hand</string>
     <string name="zoom_out">Zoom out</string>

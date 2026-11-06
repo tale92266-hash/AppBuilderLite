@@ -41,19 +41,22 @@ public final class CheckBoxComponent {
 
     public static void drawOnCanvas(Canvas canvas, RectF bounds,
                                     ComponentModel model, float density) {
+        float padLeft = model.getLayout().getPaddingLeft() * density;
+        float padShiftY = (model.getLayout().getPaddingTop()
+                - model.getLayout().getPaddingBottom()) / 2f * density;
         float box = 18 * density;
-        float top = bounds.centerY() - box / 2;
+        float top = bounds.centerY() - box / 2 + padShiftY;
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(2 * density);
         paint.setColor(Color.parseColor("#6B7280"));
-        canvas.drawRect(bounds.left + 2 * density, top,
-                bounds.left + 2 * density + box, top + box, paint);
+        canvas.drawRect(bounds.left + 2 * density + padLeft, top,
+                bounds.left + 2 * density + padLeft + box, top + box, paint);
         if ("true".equals(model.getProperty("checked"))) {
             paint.setStyle(Paint.Style.STROKE);
             paint.setColor(Color.parseColor("#0B4499"));
             paint.setStrokeWidth(2.5f * density);
-            float x0 = bounds.left + 2 * density;
+            float x0 = bounds.left + 2 * density + padLeft;
             canvas.drawLine(x0 + 4 * density, top + box / 2,
                     x0 + 8 * density, top + box - 4 * density, paint);
             canvas.drawLine(x0 + 8 * density, top + box - 4 * density,
@@ -65,8 +68,8 @@ public final class CheckBoxComponent {
         paint.setTextSize(ComponentDefinition.parseTextSizeSp(model, 16) * density);
         paint.setTextAlign(Paint.Align.LEFT);
         canvas.drawText(model.getProperty("text", "CheckBox"),
-                bounds.left + 26 * density,
-                bounds.centerY() + 5 * density, paint);
+                bounds.left + 26 * density + padLeft,
+                bounds.centerY() + 5 * density + padShiftY, paint);
     }
 
     public static View buildPreviewView(Context context, ComponentModel model) {

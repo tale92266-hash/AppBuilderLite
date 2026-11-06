@@ -202,16 +202,26 @@ public class DesignCanvasView extends View {
         return state.getSelectedModels();
     }
 
-    /** Deletes the selection (root can never be deleted). */
+    /** Deletes the selection (root can never be deleted, locked models
+     * are skipped). */
     public boolean deleteSelected() {
         List<ComponentModel> selected = state.getSelectedModels();
         if (selected.isEmpty()) {
             return false;
         }
+        List<ComponentModel> deletable = new ArrayList<>();
+        for (ComponentModel model : selected) {
+            if (!model.isLocked()) {
+                deletable.add(model);
+            }
+        }
+        if (deletable.isEmpty()) {
+            return false;
+        }
         if (listener != null) {
             listener.onMutationStarting();
         }
-        for (ComponentModel model : selected) {
+        for (ComponentModel model : deletable) {
             ComponentModel parent = ComponentHitTester.findParent(state.getRoot(),
                     model.getId());
             if (parent != null) {
@@ -298,6 +308,9 @@ public class DesignCanvasView extends View {
 
     /** Moves a model one step later (forward) or earlier (backward) in its parent. */
     public boolean reorder(ComponentModel model, boolean forward) {
+        if (model.isLocked()) {
+            return false;
+        }
         ComponentModel parent = ComponentHitTester.findParent(state.getRoot(),
                 model.getId());
         if (parent == null) {

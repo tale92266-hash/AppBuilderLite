@@ -56,7 +56,9 @@ public final class ButtonComponent {
                 model.getProperty("textColor"), Color.WHITE));
         paint.setTextSize(textSizePx);
         paint.setTextAlign(Paint.Align.CENTER);
-        float y = bounds.centerY() + textSizePx * 0.35f;
+        float padShiftY = (model.getLayout().getPaddingTop()
+                - model.getLayout().getPaddingBottom()) / 2f * density;
+        float y = bounds.centerY() + textSizePx * 0.35f + padShiftY;
         canvas.drawText(model.getProperty("text", "Button"), bounds.centerX(), y, paint);
     }
 
