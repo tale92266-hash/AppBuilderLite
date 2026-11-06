@@ -24,6 +24,7 @@ import com.nobi.appbuilder.R;
 import com.nobi.appbuilder.autosave.AutosaveManager;
 import com.nobi.appbuilder.autosave.ProjectBackupManager;
 import com.nobi.appbuilder.autosave.RecoveryManager;
+import com.nobi.appbuilder.autosave.RecoverySnapshot;
 import com.nobi.appbuilder.clipboard.ClipboardData;
 import com.nobi.appbuilder.clipboard.ComponentCloner;
 import com.nobi.appbuilder.clipboard.EditorClipboard;
@@ -596,6 +597,11 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
                             public String getDocumentJson() {
                                 return getCurrentDocumentJson();
                             }
+
+                            @Override
+                            public boolean isDirty() {
+                                return autosaveManager.isDirty();
+                            }
                         });
                 checkRecovery();
                 List<String> navProblems =
@@ -784,6 +790,11 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
         if (ok) {
             lastSavedAt = System.currentTimeMillis();
             recoveryManager.setLastSavedAt(lastSavedAt);
+            // The saved document now covers everything the snapshot
+            // held — without this, a snapshot survives every clean
+            // save and the next open asks about work that is already
+            // saved.
+            recoveryManager.deleteSnapshot(project.getId());
         }
     }
 
@@ -814,10 +825,31 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
 
     /** Offers to restore unsaved work when a snapshot is newer than the save. */
     private void checkRecovery() {
-        recoveryManager.getSnapshot(project.getId(), snapshot -> {
+        executor.execute(() -> {
+            RecoverySnapshot snapshot =
+                    recoveryManager.readSnapshot(project.getId());
             if (snapshot == null || !snapshot.hasUnrestoredWork(lastSavedAt)) {
                 return;
             }
+            // A snapshot left over from a clean save (older builds wrote
+            // one on every pause) holds exactly the saved document —
+            // drop it silently instead of asking about work that is
+            // already saved. This also clears the stale snapshot a
+            // pre-fix build left behind, so the dialog appears at most
+            // once more after updating.
+            String savedJson =
+                    documentRepository.loadDocumentJson(project.getId());
+            if (savedJson != null
+                    && savedJson.equals(snapshot.getDocumentJson())) {
+                recoveryManager.deleteSnapshot(project.getId());
+                return;
+            }
+            mainHandler.post(() -> showRecoveryDialog(snapshot));
+        });
+    }
+
+    /** The restore-or-discard dialog for a snapshot with real unsaved work. */
+    private void showRecoveryDialog(RecoverySnapshot snapshot) {
             new AlertDialog.Builder(this)
                     .setTitle(R.string.recovery_title)
                     .setMessage(R.string.recovery_message)
@@ -863,21 +895,26 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
                     .setNegativeButton(R.string.recovery_discard, (dialog, which) ->
                             recoveryManager.deleteSnapshot(project.getId()))
                     .show();
-        });
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        // Snapshot first, then flush: on the single-thread executor the
+        // snapshot lands before the save, and a successful save deletes
+        // the snapshot (see saveDocumentSync). If the process dies
+        // before the save runs, the snapshot survives and recovery is
+        // offered. A clean document needs no snapshot at all — writing
+        // one on every pause is what made the next open ask about
+        // work that was already saved.
+        if (project != null && autosaveManager.isDirty()) {
+            String json = getCurrentDocumentJson();
+            if (json != null) {
+                recoveryManager.saveSnapshot(project.getId(),
+                        screen == null ? null : screen.getId(), json, lastSavedAt);
+            }
+        }
         autosaveManager.flush();
-        if (project == null) {
-            return;
-        }
-        String json = getCurrentDocumentJson();
-        if (json != null) {
-            recoveryManager.saveSnapshot(project.getId(),
-                    screen == null ? null : screen.getId(), json, lastSavedAt);
-        }
     }
 
     @Override

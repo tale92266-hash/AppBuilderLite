@@ -29,6 +29,9 @@ public class RecoveryManager {
         String getScreenId();
 
         String getDocumentJson();
+
+        /** True when the document has edits not yet saved. */
+        boolean isDirty();
     }
 
     public interface SnapshotCallback {
@@ -48,10 +51,16 @@ public class RecoveryManager {
             if (!autoSnapshotRunning || autoSnapshotSource == null) {
                 return;
             }
-            String json = autoSnapshotSource.getDocumentJson();
-            if (json != null) {
-                saveSnapshot(autoSnapshotSource.getProjectId(),
-                        autoSnapshotSource.getScreenId(), json, lastSavedAt);
+            // Only snapshot when there are unsaved edits. Snapshotting a
+            // clean document creates a snapshot newer than the last save,
+            // which the next open mistakes for unrestored work and asks
+            // about — even though everything is already saved.
+            if (autoSnapshotSource.isDirty()) {
+                String json = autoSnapshotSource.getDocumentJson();
+                if (json != null) {
+                    saveSnapshot(autoSnapshotSource.getProjectId(),
+                            autoSnapshotSource.getScreenId(), json, lastSavedAt);
+                }
             }
             mainHandler.postDelayed(this, snapshotIntervalMs);
         }
