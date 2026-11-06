@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/text_sync_conflict_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/sync_conflict"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/text_sync_conflict_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textSize="14sp" />
+
+    <Button
+        android:id="@+id/btn_sync_keep_visual"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/sync_keep_visual" />
+
+    <Button
+        android:id="@+id/btn_sync_keep_code"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/sync_keep_code" />
+
+    <Button
+        android:id="@+id/btn_sync_review"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/sync_review" />
+
+    <Button
+        android:id="@+id/btn_sync_backup"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/sync_backup_manual" />
+
+    <Button
+        android:id="@+id/btn_sync_cancel"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/sync_cancel" />
+
+</LinearLayout>

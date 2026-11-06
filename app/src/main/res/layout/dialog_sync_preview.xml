@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_sync_preview"
+        android:layout_width="match_parent"
+        android:layout_height="240dp" />
+
+    <Button
+        android:id="@+id/btn_sync_preview_close"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/sync_close" />
+
+</LinearLayout>
