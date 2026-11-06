@@ -108,7 +108,7 @@ public class ComponentTreeAdapter
         return controller.getFlatNodes().get(position);
     }
 
-    static class RowHolder extends RecyclerView.ViewHolder {
+    public static class RowHolder extends RecyclerView.ViewHolder {
         final ImageView arrow;
         final TextView thumb;
         final TextView label;
