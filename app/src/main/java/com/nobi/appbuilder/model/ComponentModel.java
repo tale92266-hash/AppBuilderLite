@@ -25,11 +25,17 @@ public class ComponentModel {
     private Map<String, String> properties;
     private List<ComponentModel> children;
     private List<EventModel> events;
+    /** Layout parameters ("layout": {...} in JSON). Never null after use. */
+    private LayoutModel layout;
+    /** Editor-only state (locked, hidden, ...). Never persisted to XML. */
+    private Map<String, String> editorMetadata;
 
     public ComponentModel() {
         properties = new LinkedHashMap<>();
         children = new ArrayList<>();
         events = new ArrayList<>();
+        layout = new LayoutModel();
+        editorMetadata = new LinkedHashMap<>();
     }
 
     public ComponentModel(String id, String type) {
@@ -89,15 +95,21 @@ public class ComponentModel {
     }
 
     public Map<String, String> getProperties() {
+        if (properties == null) {
+            properties = new LinkedHashMap<>();
+        }
         return properties;
     }
 
     public void setProperties(Map<String, String> properties) {
-        this.properties = properties;
+        this.properties = properties == null ? new LinkedHashMap<>() : properties;
     }
 
     public void setProperty(String key, String value) {
-        properties.put(key, value);
+        if (key == null) {
+            return;
+        }
+        getProperties().put(key, value);
     }
 
     public String getProperty(String key) {
@@ -110,27 +122,68 @@ public class ComponentModel {
     }
 
     public List<ComponentModel> getChildren() {
+        if (children == null) {
+            children = new ArrayList<>();
+        }
         return children;
     }
 
     public void setChildren(List<ComponentModel> children) {
-        this.children = children;
+        this.children = children == null ? new ArrayList<>() : children;
     }
 
     public void addChild(ComponentModel child) {
-        children.add(child);
+        if (child != null) {
+            getChildren().add(child);
+        }
     }
 
     public List<EventModel> getEvents() {
+        if (events == null) {
+            events = new ArrayList<>();
+        }
         return events;
     }
 
     public void setEvents(List<EventModel> events) {
-        this.events = events;
+        this.events = events == null ? new ArrayList<>() : events;
     }
 
     public void addEvent(EventModel event) {
-        events.add(event);
+        if (event != null) {
+            getEvents().add(event);
+        }
+    }
+
+    public LayoutModel getLayout() {
+        if (layout == null) {
+            layout = new LayoutModel();
+        }
+        return layout;
+    }
+
+    public void setLayout(LayoutModel layout) {
+        this.layout = layout == null ? new LayoutModel() : layout;
+    }
+
+    public Map<String, String> getEditorMetadata() {
+        if (editorMetadata == null) {
+            editorMetadata = new LinkedHashMap<>();
+        }
+        return editorMetadata;
+    }
+
+    public void setEditorMetadata(Map<String, String> editorMetadata) {
+        this.editorMetadata = editorMetadata == null
+                ? new LinkedHashMap<>() : editorMetadata;
+    }
+
+    public boolean isLocked() {
+        return "true".equals(getEditorMetadata().get("locked"));
+    }
+
+    public void setLocked(boolean locked) {
+        getEditorMetadata().put("locked", locked ? "true" : "false");
     }
 
     /** Depth-first search for a component by id, or null. */
@@ -138,7 +191,7 @@ public class ComponentModel {
         if (searchId != null && searchId.equals(id)) {
             return this;
         }
-        for (ComponentModel child : children) {
+        for (ComponentModel child : getChildren()) {
             ComponentModel found = child.findById(searchId);
             if (found != null) {
                 return found;

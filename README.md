@@ -32,9 +32,40 @@ Project foundation, dashboard, SQLite and project models.
   (Gson, schema version 1)
 - Utils: `IDGenerator`, `DimensionUtils`, `FileUtils`
 
-**Not in Phase 1 (later phases)**
+## Phase 2 — DONE (2026-11-06)
 
-- Phase 2: JSON engine + component registry
+JSON document engine + registry-based component architecture. The JSON
+document is now the single source of truth for all designs.
+
+**Included**
+
+- `ir/` — `IRDocument` (envelope: schemaVersion, project, screens,
+  theme, assets, editorMetadata; unknown fields preserved across
+  round-trips), `IRSerializer` (pretty JSON), `IRDeserializer`
+  (migrates legacy Phase 1 project JSON, validates, repairs nulls),
+  `IRValidator` (unique ids, known types, dimensions, colours, launcher
+  screen), `IRVersionManager` (schema 1; newer schemas rejected),
+  `IRConstants`
+- `model/` — new `LayoutModel` (width/height/margins/padding/gravity)
+  and `ThemeModel`; `ComponentModel` gained `layout` + `editorMetadata`
+  with null-safe accessors
+- `components/` — `ComponentDefinition` (type, category, defaults,
+  canvas/preview/XML strategies), `ComponentCategory`,
+  `ComponentRegistry` (register/get/contains/getAll/getByCategory/
+  unregister; 12 types incl. MaterialCardView), `ComponentFactory`
+  (create/clone with fresh ids), and 11 component classes
+  (TextView, Button, ImageView, EditText, LinearLayout, FrameLayout,
+  ConstraintLayout, ScrollView, CheckBox, Switch, ProgressBar), each
+  with canvas drawing, real preview View creation and XML attributes
+- `repository/DocumentRepository` — save/load whole documents and
+  single screens on the Phase 1 tables (theme in project_settings),
+  one transaction per document save
+- Dashboard import now loads through `IRDeserializer` (invalid files
+  are rejected with a reason); new projects start from
+  `ComponentFactory.createRootContainer()`
+
+**Not in Phase 2 (later phases)**
+
 - Phase 3: Canvas editor + drag-and-drop (`DesignCanvasView`)
 - Phase 4: Properties inspector + hierarchy
 - Phase 5: Undo/redo + autosave

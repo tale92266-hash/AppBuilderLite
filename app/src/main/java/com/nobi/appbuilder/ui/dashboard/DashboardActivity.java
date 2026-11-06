@@ -35,12 +35,16 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.nobi.appbuilder.R;
+import com.nobi.appbuilder.components.ComponentFactory;
 import com.nobi.appbuilder.database.DatabaseHelper;
 import com.nobi.appbuilder.database.ProjectRepository;
 import com.nobi.appbuilder.database.ScreenRepository;
+import com.nobi.appbuilder.ir.IRDeserializer;
+import com.nobi.appbuilder.ir.IRDocument;
 import com.nobi.appbuilder.model.ComponentModel;
 import com.nobi.appbuilder.model.ProjectModel;
 import com.nobi.appbuilder.model.ScreenModel;
+import com.nobi.appbuilder.repository.DocumentRepository;
 import com.nobi.appbuilder.utils.FileUtils;
 import com.nobi.appbuilder.utils.IDGenerator;
 
@@ -290,9 +294,7 @@ public class DashboardActivity extends AppCompatActivity {
                     IDGenerator.newProjectId(), appName, packageName, minSdk);
             ScreenModel screen = new ScreenModel(
                     IDGenerator.newScreenId(), project.getId(), screenName, true, 0);
-            ComponentModel root = new ComponentModel(
-                    IDGenerator.newComponentId(), "LinearLayout");
-            root.setProperty("orientation", "vertical");
+            ComponentModel root = ComponentFactory.createRootContainer();
             screen.setRootComponent(root);
             boolean ok = projectRepository.insert(project, screen);
             mainHandler.post(() -> {
@@ -411,28 +413,29 @@ public class DashboardActivity extends AppCompatActivity {
 
     private void importProject(Uri uri) {
         executor.execute(() -> {
-            ProjectModel imported = null;
+            IRDocument imported = null;
             try {
                 String json = FileUtils.readStreamToString(
                         getContentResolver().openInputStream(uri));
-                imported = ProjectModel.fromJson(json);
+                imported = IRDeserializer.deserializeDocument(json);
             } catch (Exception e) {
                 imported = null;
             }
-            final ProjectModel project = imported;
+            final IRDocument document = imported;
             mainHandler.post(() -> {
-                if (project == null) {
+                if (document == null) {
                     Toast.makeText(this, R.string.msg_import_failed,
                             Toast.LENGTH_LONG).show();
                     return;
                 }
-                saveImportedProject(project);
+                saveImportedProject(document);
             });
         });
     }
 
-    private void saveImportedProject(ProjectModel project) {
+    private void saveImportedProject(IRDocument document) {
         executor.execute(() -> {
+            ProjectModel project = document.toProject();
             if (projectRepository.getById(project.getId()) != null) {
                 project.setId(IDGenerator.newProjectId());
             }
@@ -449,6 +452,8 @@ public class DashboardActivity extends AppCompatActivity {
                     screen.setProjectId(project.getId());
                     screenRepository.insert(screen);
                 }
+                new DocumentRepository(dbHelper)
+                        .saveTheme(project.getId(), document.getTheme());
             }
             mainHandler.post(() -> {
                 if (ok) {
