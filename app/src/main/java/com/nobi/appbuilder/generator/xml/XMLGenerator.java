@@ -77,6 +77,13 @@ public class XMLGenerator {
         int insertAt;
         if (spaceAt > 0 && (newlineAt < 0 || spaceAt < newlineAt)) {
             insertAt = spaceAt;
+        } else if (tagEnd > 0 && body.charAt(tagEnd - 1) == '/') {
+            // Self-closing root (an empty container has no children):
+            // the namespaces go BEFORE the "/>", not after it —
+            // inserting after the "/" produces
+            // "<LinearLayout ... / xmlns:android=...>" which does not
+            // parse at all.
+            insertAt = tagEnd - 1;
         } else {
             insertAt = tagEnd;
         }

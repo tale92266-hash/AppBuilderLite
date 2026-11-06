@@ -19,6 +19,7 @@
         android:layout_marginTop="8dp" />
 
     <LinearLayout
+        android:id="@+id/row_build_apk_actions"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
@@ -43,6 +44,7 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/row_build_apk_location"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"

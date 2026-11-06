@@ -357,6 +357,9 @@ public class BuildActivity extends AppCompatActivity {
     private void installLastApk() {
         if (lastResult != null && lastResult.getApkFile() != null) {
             installApk(lastResult.getApkFile());
+        } else {
+            Toast.makeText(this, R.string.build_no_apk,
+                    Toast.LENGTH_LONG).show();
         }
     }
 
@@ -382,6 +385,9 @@ public class BuildActivity extends AppCompatActivity {
     private void shareLastApk() {
         if (lastResult != null && lastResult.getApkFile() != null) {
             new ApkShareManager(this).share(lastResult.getApkFile());
+        } else {
+            Toast.makeText(this, R.string.build_no_apk,
+                    Toast.LENGTH_LONG).show();
         }
     }
 
@@ -394,12 +400,18 @@ public class BuildActivity extends AppCompatActivity {
                     "application/vnd.android.package-archive");
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivity(intent);
+        } else {
+            Toast.makeText(this, R.string.build_no_apk,
+                    Toast.LENGTH_LONG).show();
         }
     }
 
     private void deleteLastApk() {
         if (lastResult != null && lastResult.getApkFile() != null) {
             confirmDeleteApk(lastResult.getApkFile());
+        } else {
+            Toast.makeText(this, R.string.build_no_apk,
+                    Toast.LENGTH_LONG).show();
         }
     }
 

@@ -26,12 +26,16 @@ public class BuildResultController {
 
     private final View successRoot;
     private final View failedRoot;
+    private final View apkActionsRow;
+    private final View apkLocationRow;
     private final TextView successSummary;
     private final TextView failedText;
 
     public BuildResultController(View root, ResultListener listener) {
         successRoot = root.findViewById(R.id.layout_build_success);
         failedRoot = root.findViewById(R.id.layout_build_failed);
+        apkActionsRow = root.findViewById(R.id.row_build_apk_actions);
+        apkLocationRow = root.findViewById(R.id.row_build_apk_location);
         successSummary = root.findViewById(R.id.text_build_success_summary);
         failedText = root.findViewById(R.id.text_build_failed);
         Button install = root.findViewById(R.id.btn_build_install);
@@ -53,6 +57,8 @@ public class BuildResultController {
     public void showSuccess(BuildResult result) {
         failedRoot.setVisibility(View.GONE);
         successRoot.setVisibility(View.VISIBLE);
+        apkActionsRow.setVisibility(View.VISIBLE);
+        apkLocationRow.setVisibility(View.VISIBLE);
         StringBuilder out = new StringBuilder();
         out.append("Build succeeded in ").append(result.getDurationMs())
                 .append(" ms\n");
@@ -71,6 +77,11 @@ public class BuildResultController {
     public void showExternal(BuildResult result) {
         failedRoot.setVisibility(View.GONE);
         successRoot.setVisibility(View.VISIBLE);
+        // An external build produces a ZIP, not an APK — the Install,
+        // Share, Open location and Delete buttons must not be shown:
+        // with no APK file their taps were silent no-ops.
+        apkActionsRow.setVisibility(View.GONE);
+        apkLocationRow.setVisibility(View.GONE);
         StringBuilder out = new StringBuilder();
         out.append("This device cannot compile Android apps locally.\n");
         out.append("The Android Studio project was exported:\n");
