@@ -72,6 +72,12 @@ public class BuildActivity extends AppCompatActivity {
     private String runningBuildId;
     private CloudBuildSettings cloudSettings;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    // APK the user asked to install while the "install unknown apps"
+    // permission was missing. When they come back from Settings with
+    // the permission granted, onResume fires the installer itself —
+    // the user must never have to tap Install a second time, and a
+    // tap must never end in silence on the same screen.
+    private File pendingInstallFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -468,19 +474,36 @@ public class BuildActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (pendingInstallFile != null
+                && new ApkInstaller(this).canRequestInstall()) {
+            File apkFile = pendingInstallFile;
+            pendingInstallFile = null;
+            installApk(apkFile);
+        }
+    }
+
     private void installApk(File apkFile) {
         ApkInstaller installer = new ApkInstaller(this);
         if (!installer.canRequestInstall()) {
+            pendingInstallFile = apkFile;
             new AlertDialog.Builder(this)
                     .setTitle(R.string.build_install_permission)
                     .setMessage(R.string.build_install_permission_text)
                     .setPositiveButton(R.string.build_open_settings,
                             (d, w) -> startActivity(
                                     installer.installPermissionIntent()))
-                    .setNegativeButton(android.R.string.cancel, null)
+                    .setNegativeButton(android.R.string.cancel,
+                            (d, w) -> pendingInstallFile = null)
                     .show();
             return;
         }
+        // Never a silent tap: the user sees this even if the system
+        // installer then fails to open for any reason.
+        Toast.makeText(this, R.string.build_install_opening,
+                Toast.LENGTH_SHORT).show();
         if (!installer.install(apkFile)) {
             Toast.makeText(this, R.string.build_install_failed,
                     Toast.LENGTH_SHORT).show();

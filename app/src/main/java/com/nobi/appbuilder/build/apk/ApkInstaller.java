@@ -1,5 +1,6 @@
 package com.nobi.appbuilder.build.apk;
 
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -55,7 +56,13 @@ public class ApkInstaller {
         if (intent.resolveActivity(context.getPackageManager()) == null) {
             return false;
         }
-        context.startActivity(intent);
+        try {
+            context.startActivity(intent);
+        } catch (ActivityNotFoundException | SecurityException e) {
+            // A resolving-but-unlaunchable installer must surface as a
+            // "could not start" failure, never a crash or a silent tap.
+            return false;
+        }
         return true;
     }
 }

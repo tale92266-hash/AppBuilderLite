@@ -272,6 +272,7 @@
     <string name="build_install_permission_text">Allow this app to install APKs in Settings, then try again.</string>
     <string name="build_open_settings">Open Settings</string>
     <string name="build_install_failed">Could not start the installer</string>
+    <string name="build_install_opening">Opening the system installer…</string>
     <string name="build_no_apk">No APK was built — this export is an Android Studio project ZIP. Build the APK there first.</string>
     <string name="build_mode">Build mode</string>
     <string name="build_cloud_status_connected">Cloud build connected as %1$s — builds run on GitHub Actions and the APK downloads to this phone.</string>
