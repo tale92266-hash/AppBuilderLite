@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="margin_large">16dp</dimen>
+    <dimen name="margin_medium">12dp</dimen>
+    <dimen name="margin_small">8dp</dimen>
+    <dimen name="card_corner">12dp</dimen>
+    <dimen name="thumb_size">56dp</dimen>
+    <dimen name="thumb_text_size">20sp</dimen>
+    <dimen name="title_text_size">18sp</dimen>
+    <dimen name="subtitle_text_size">13sp</dimen>
+</resources>

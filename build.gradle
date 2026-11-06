@@ -1,0 +1,6 @@
+// Top-level build file for AppBuilder Lite (Phase 1)
+// Stack: Gradle 8.11.1 + AGP 8.9.2 + compileSdk 35 + Java 17.
+// App code is Java only — no Kotlin, no Compose (per project spec).
+plugins {
+    id("com.android.application") version "8.9.2" apply false
+}

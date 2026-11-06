@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="min_sdk_labels">
+        <item>API 26 (Android 8.0)</item>
+        <item>API 28 (Android 9)</item>
+        <item>API 29 (Android 10)</item>
+        <item>API 30 (Android 11)</item>
+        <item>API 31 (Android 12)</item>
+        <item>API 33 (Android 13)</item>
+        <item>API 34 (Android 14)</item>
+    </string-array>
+    <integer-array name="min_sdk_values">
+        <item>26</item>
+        <item>28</item>
+        <item>29</item>
+        <item>30</item>
+        <item>31</item>
+        <item>33</item>
+        <item>34</item>
+    </integer-array>
+</resources>
