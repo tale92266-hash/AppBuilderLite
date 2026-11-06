@@ -17,8 +17,15 @@ import javax.xml.parsers.ParserConfigurationException;
  * the layout validator rejected valid XML before a single file
  * was written). Every feature here is therefore set best-effort:
  * an unsupported one is skipped, never fatal.
- * setExpandEntityReferences(false) and setXIncludeAware(false) are
- * standard JAXP and always apply.
+ *
+ * Two more Android traps live here:
+ * - setXIncludeAware() is NEVER called: Android's factory throws
+ *   UnsupportedOperationException ("This parser does not support
+ *   specification ...") for it, always, even with false. That was
+ *   the second on-device export failure (fix1).
+ * - setExpandEntityReferences(false) is a plain field setter on
+ *   Android, but it is still applied defensively (any failure is
+ *   ignored) so no future platform quirk can break parsing again.
  */
 public final class SecureXml {
 
@@ -40,8 +47,8 @@ public final class SecureXml {
         setFeature(factory,
                 "http://apache.org/xml/features/nonvalidating/load-external-dtd",
                 false);
-        factory.setXIncludeAware(false);
-        factory.setExpandEntityReferences(false);
+        // setXIncludeAware() is deliberately NOT called (see class doc).
+        setExpandEntityReferences(factory, false);
         return factory;
     }
 
@@ -54,8 +61,18 @@ public final class SecureXml {
                                    String name, boolean value) {
         try {
             factory.setFeature(name, value);
-        } catch (ParserConfigurationException ignored) {
+        } catch (Exception ignored) {
             // Unsupported on this parser (e.g. Android's built-in one).
+        }
+    }
+
+    private static void setExpandEntityReferences(
+            DocumentBuilderFactory factory, boolean value) {
+        try {
+            factory.setExpandEntityReferences(value);
+        } catch (Exception ignored) {
+            // Plain setter on Android; guarded so a platform quirk
+            // can never break parsing.
         }
     }
 }
