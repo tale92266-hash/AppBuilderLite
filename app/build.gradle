@@ -10,8 +10,8 @@ android {
         applicationId = "com.nobi.appbuilder"
         minSdk = 26
         targetSdk = 35
-        versionCode = 15
-        versionName = "1.0.0-phase14-fix3"
+        versionCode = 16
+        versionName = "1.0.0-phase14-fix4"
     }
 
     // Fixed signing key: when the CI workflow restores the keystore from

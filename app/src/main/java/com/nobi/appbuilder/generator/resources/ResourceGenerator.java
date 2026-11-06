@@ -18,6 +18,15 @@ public class ResourceGenerator {
     }
 
     public void generateInto(GenerationResult result) {
+        // Drawables FIRST: DrawableGenerator registers its template
+        // colours (color_primary, color_surface) in the shared
+        // collector, and colors.xml is written from that collector.
+        // Writing colors.xml before the drawables left those @color
+        // references unresolved and failed every export at the
+        // resource-validation stage (0 files). The layout stage is
+        // the only other collector writer, and it runs before this.
+        Map<String, String> drawables =
+                new DrawableGenerator(context).generate();
         result.addTextFile("app/src/main/res/values/colors.xml",
                 new ColorsGenerator(context).generate());
         result.addTextFile("app/src/main/res/values/strings.xml",
@@ -26,8 +35,7 @@ public class ResourceGenerator {
                 new DimensionsGenerator(context).generate());
         result.addTextFile("app/src/main/res/values/themes.xml",
                 new StylesGenerator(context).generate());
-        for (Map.Entry<String, String> entry
-                : new DrawableGenerator(context).generate().entrySet()) {
+        for (Map.Entry<String, String> entry : drawables.entrySet()) {
             result.addTextFile("app/src/main/res/drawable/" + entry.getKey(),
                     entry.getValue());
         }

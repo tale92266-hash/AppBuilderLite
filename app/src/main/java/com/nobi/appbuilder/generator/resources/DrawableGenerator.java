@@ -32,6 +32,14 @@ public class DrawableGenerator {
             if (fileName == null) {
                 continue;
             }
+            // Shape names are registered without an extension (they
+            // double as the @drawable reference name), but the
+            // generated file must end in .xml — without it AAPT will
+            // not compile it and the cross-reference check does not
+            // see it as a drawable at all, failing the export.
+            if (!fileName.endsWith(".xml")) {
+                fileName = fileName + ".xml";
+            }
             String radius = spec.radiusDp > 0 ? dp(spec.radiusDp) : null;
             String stroke = spec.borderWidthDp > 0 && spec.borderColor != null
                     ? dp(spec.borderWidthDp) : null;
