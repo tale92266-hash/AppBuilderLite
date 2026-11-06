@@ -9,6 +9,13 @@ public class BuildConfiguration {
     public static final String TYPE_DEBUG = "debug";
     public static final String TYPE_RELEASE = "release";
 
+    /** Where the APK comes from: built in the cloud, or exported as a
+     * ZIP for Android Studio. Cloud is the default — it is what the
+     * Build screen promises (tap Build, get an APK). */
+    public static final String MODE_CLOUD_APK = "cloud_apk";
+    public static final String MODE_EXPORT_ZIP = "export_zip";
+
+    private String buildMode = MODE_CLOUD_APK;
     private String buildType = TYPE_DEBUG;
     private String applicationId;
     private String versionName = "1.0";
@@ -21,6 +28,18 @@ public class BuildConfiguration {
     private boolean preserveLogs = true;
     /** Optional user-configured Android SDK path; null means auto-detect. */
     private String sdkPath;
+
+    public String getBuildMode() {
+        return buildMode;
+    }
+
+    public void setBuildMode(String buildMode) {
+        this.buildMode = buildMode;
+    }
+
+    public boolean isCloudBuild() {
+        return MODE_CLOUD_APK.equals(buildMode);
+    }
 
     public String getBuildType() {
         return buildType;
@@ -122,6 +141,10 @@ public class BuildConfiguration {
     /** Problems; empty means the configuration is valid. */
     public List<String> validate() {
         List<String> problems = new ArrayList<>();
+        if (!MODE_CLOUD_APK.equals(buildMode)
+                && !MODE_EXPORT_ZIP.equals(buildMode)) {
+            problems.add("Build mode must be cloud APK or export ZIP");
+        }
         if (!TYPE_DEBUG.equals(buildType) && !TYPE_RELEASE.equals(buildType)) {
             problems.add("Build type must be debug or release");
         }

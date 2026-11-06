@@ -1,6 +1,6 @@
 package com.nobi.appbuilder.build;
 
-/** The ten build stages. Only stages supported by real build output
+/** The build stages. Only stages supported by real build output
  * are shown with progress; anything else stays indeterminate. */
 public enum BuildTask {
     CHECK_ENVIRONMENT("Checking build environment"),
@@ -12,6 +12,9 @@ public enum BuildTask {
     MERGE_MANIFEST("Merging manifest"),
     PACKAGE_APK("Packaging APK"),
     VERIFY_APK("Verifying APK"),
+    UPLOAD_PROJECT("Uploading project to the cloud"),
+    CLOUD_BUILD("Building on the cloud"),
+    DOWNLOAD_APK("Downloading APK"),
     COMPLETED("Build completed");
 
     private final String label;

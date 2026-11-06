@@ -273,6 +273,19 @@
     <string name="build_open_settings">Open Settings</string>
     <string name="build_install_failed">Could not start the installer</string>
     <string name="build_no_apk">No APK was built — this export is an Android Studio project ZIP. Build the APK there first.</string>
+    <string name="build_mode">Build mode</string>
+    <string name="build_cloud_status_connected">Cloud build connected as %1$s — builds run on GitHub Actions and the APK downloads to this phone.</string>
+    <string name="build_cloud_status_not_connected">Cloud build needs GitHub — connect to build APKs in the app. Needs internet.</string>
+    <string name="build_cloud_connect">Connect GitHub</string>
+    <string name="build_cloud_disconnect">Disconnect GitHub</string>
+    <string name="build_cloud_connect_title">Connect GitHub for cloud builds</string>
+    <string name="build_cloud_connect_message">Create a personal access token (classic) at github.com → Settings → Developer settings → Personal access tokens, with repo and workflow scopes, and paste it below. The token stays on this device and can be revoked on GitHub at any time.</string>
+    <string name="build_cloud_token_hint">Personal access token</string>
+    <string name="build_cloud_connected">Connected as %1$s</string>
+    <string name="build_cloud_connect_failed">Could not connect to GitHub — check the token and try again.</string>
+    <string name="build_cloud_not_connected">Connect GitHub first to build an APK in the app.</string>
+    <string name="build_cloud_too_large">Project ZIP is too large for cloud build (over 50 MB).</string>
+    <string name="build_cloud_no_apk">Cloud build finished without an APK — see the log.</string>
 
     <!-- Phase 10: code editor -->
     <string name="editor_title">Code Editor</string>

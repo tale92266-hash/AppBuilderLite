@@ -7,6 +7,7 @@ import android.os.Looper;
 import com.nobi.appbuilder.build.diagnostics.BuildDiagnosticsManager;
 import com.nobi.appbuilder.build.diagnostics.BuildReportGenerator;
 import com.nobi.appbuilder.build.engine.BuildEngine;
+import com.nobi.appbuilder.build.engine.CloudBuildEngine;
 import com.nobi.appbuilder.build.engine.ExternalBuildEngine;
 import com.nobi.appbuilder.build.engine.LocalGradleBuildEngine;
 import com.nobi.appbuilder.build.logs.BuildLogExporter;
@@ -99,7 +100,9 @@ public class BuildManager {
             logManager.appendLine("Environment: " + environment.getSummary());
             mainHandler.post(() -> listener.onTask(BuildTask.VALIDATE_PROJECT));
             BuildEngine engine;
-            if (environment.getCapability()
+            if (request.getConfiguration().isCloudBuild()) {
+                engine = new CloudBuildEngine(appContext);
+            } else if (environment.getCapability()
                     == BuildCapability.LOCAL_BUILD_SUPPORTED) {
                 engine = new LocalGradleBuildEngine(appContext);
             } else {

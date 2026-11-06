@@ -1,10 +1,12 @@
 package com.nobi.appbuilder.ui.build;
 
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Spinner;
+import android.widget.TextView;
 
 import com.nobi.appbuilder.R;
 import com.nobi.appbuilder.build.BuildConfiguration;
@@ -14,7 +16,14 @@ import java.util.List;
 /** Binds the build configuration form to a BuildConfiguration. */
 public class BuildConfigurationController {
 
+    /** Called when the user picks another build mode. */
+    public interface ModeChangeListener {
+        void onModeChanged(String buildMode);
+    }
+
     private final View root;
+    private final Spinner buildMode;
+    private final TextView cloudStatus;
     private final Spinner buildType;
     private final EditText appId;
     private final EditText versionName;
@@ -29,6 +38,8 @@ public class BuildConfigurationController {
 
     public BuildConfigurationController(View root) {
         this.root = root;
+        buildMode = root.findViewById(R.id.spinner_build_mode);
+        cloudStatus = root.findViewById(R.id.text_build_cloud_status);
         buildType = root.findViewById(R.id.spinner_build_type);
         appId = root.findViewById(R.id.input_build_app_id);
         versionName = root.findViewById(R.id.input_build_version_name);
@@ -46,9 +57,50 @@ public class BuildConfigurationController {
         adapter.setDropDownViewResource(
                 android.R.layout.simple_spinner_dropdown_item);
         buildType.setAdapter(adapter);
+        ArrayAdapter<CharSequence> modeAdapter =
+                ArrayAdapter.createFromResource(root.getContext(),
+                        R.array.build_modes,
+                        android.R.layout.simple_spinner_item);
+        modeAdapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item);
+        buildMode.setAdapter(modeAdapter);
+    }
+
+    public void setModeChangeListener(ModeChangeListener listener) {
+        buildMode.setOnItemSelectedListener(
+                new AdapterView.OnItemSelectedListener() {
+                    @Override
+                    public void onItemSelected(AdapterView<?> parent,
+                                               View view, int position,
+                                               long id) {
+                        if (listener != null) {
+                            listener.onModeChanged(getSelectedBuildMode());
+                        }
+                    }
+
+                    @Override
+                    public void onNothingSelected(AdapterView<?> parent) {
+                    }
+                });
+    }
+
+    public String getSelectedBuildMode() {
+        return buildMode.getSelectedItemPosition() == 1
+                ? BuildConfiguration.MODE_EXPORT_ZIP
+                : BuildConfiguration.MODE_CLOUD_APK;
+    }
+
+    public void setCloudStatusText(String text) {
+        if (text == null || text.isEmpty()) {
+            cloudStatus.setVisibility(View.GONE);
+        } else {
+            cloudStatus.setVisibility(View.VISIBLE);
+            cloudStatus.setText(text);
+        }
     }
 
     public void bind(BuildConfiguration config) {
+        buildMode.setSelection(config.isCloudBuild() ? 0 : 1);
         buildType.setSelection(config.isRelease() ? 1 : 0);
         appId.setText(config.getApplicationId());
         versionName.setText(config.getVersionName());
@@ -66,6 +118,7 @@ public class BuildConfigurationController {
     public BuildConfiguration readConfig(BuildConfiguration base,
                                          List<String> errors) {
         BuildConfiguration config = new BuildConfiguration();
+        config.setBuildMode(getSelectedBuildMode());
         config.setBuildType(buildType.getSelectedItemPosition() == 1
                 ? BuildConfiguration.TYPE_RELEASE
                 : BuildConfiguration.TYPE_DEBUG);

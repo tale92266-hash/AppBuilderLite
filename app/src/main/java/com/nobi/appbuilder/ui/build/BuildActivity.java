@@ -7,7 +7,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -25,6 +28,8 @@ import com.nobi.appbuilder.build.BuildManager;
 import com.nobi.appbuilder.build.BuildResult;
 import com.nobi.appbuilder.build.BuildStatus;
 import com.nobi.appbuilder.build.BuildTask;
+import com.nobi.appbuilder.build.cloud.CloudBuildSettings;
+import com.nobi.appbuilder.build.cloud.GitHubClient;
 import com.nobi.appbuilder.build.apk.ApkInstaller;
 import com.nobi.appbuilder.build.apk.ApkManager;
 import com.nobi.appbuilder.build.apk.ApkRepository;
@@ -65,6 +70,7 @@ public class BuildActivity extends AppCompatActivity {
     private BuildHistoryAdapter historyAdapter;
     private BuildResult lastResult;
     private String runningBuildId;
+    private CloudBuildSettings cloudSettings;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override
@@ -87,8 +93,12 @@ public class BuildActivity extends AppCompatActivity {
 
         dbHelper = new DatabaseHelper(this);
         buildManager = new BuildManager(this);
+        cloudSettings = new CloudBuildSettings(this);
         configController = new BuildConfigurationController(
                 findViewById(R.id.layout_build_configuration));
+        configController.setModeChangeListener(mode -> updateCloudRow());
+        findViewById(R.id.btn_build_cloud_connect)
+                .setOnClickListener(v -> onCloudConnectButton());
         progressController = new BuildProgressController(
                 findViewById(R.id.layout_build_progress));
         logController = new BuildLogController(
@@ -196,8 +206,97 @@ public class BuildActivity extends AppCompatActivity {
 
         loadDefaults();
         detectEnvironment();
+        updateCloudRow();
         refreshApks();
         refreshHistory();
+    }
+
+    /** Cloud mode row: status text + Connect/Disconnect button. */
+    private void updateCloudRow() {
+        Button connect = findViewById(R.id.btn_build_cloud_connect);
+        if (!BuildConfiguration.MODE_CLOUD_APK.equals(
+                configController.getSelectedBuildMode())) {
+            configController.setCloudStatusText(null);
+            connect.setVisibility(View.GONE);
+            return;
+        }
+        if (cloudSettings.isConnected()) {
+            configController.setCloudStatusText(getString(
+                    R.string.build_cloud_status_connected,
+                    cloudSettings.getOwner()));
+            connect.setText(R.string.build_cloud_disconnect);
+        } else {
+            configController.setCloudStatusText(getString(
+                    R.string.build_cloud_status_not_connected));
+            connect.setText(R.string.build_cloud_connect);
+        }
+        connect.setVisibility(View.VISIBLE);
+    }
+
+    private void onCloudConnectButton() {
+        if (cloudSettings.isConnected()) {
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.build_cloud_disconnect)
+                    .setMessage(getString(
+                            R.string.build_cloud_status_connected,
+                            cloudSettings.getOwner()))
+                    .setPositiveButton(R.string.build_cloud_disconnect,
+                            (d, w) -> {
+                                cloudSettings.disconnect();
+                                updateCloudRow();
+                            })
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show();
+            return;
+        }
+        showCloudConnectDialog();
+    }
+
+    private void showCloudConnectDialog() {
+        EditText tokenInput = new EditText(this);
+        tokenInput.setHint(R.string.build_cloud_token_hint);
+        tokenInput.setInputType(InputType.TYPE_CLASS_TEXT
+                | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        int pad = (int) (16 * getResources().getDisplayMetrics().density);
+        tokenInput.setPadding(pad, pad, pad, pad);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.build_cloud_connect_title)
+                .setMessage(R.string.build_cloud_connect_message)
+                .setView(tokenInput)
+                .setPositiveButton(R.string.build_cloud_connect,
+                        (d, w) -> {
+                            String token = tokenInput.getText() == null ? ""
+                                    : tokenInput.getText().toString().trim();
+                            if (token.isEmpty()) {
+                                Toast.makeText(this,
+                                        R.string.build_cloud_connect_failed,
+                                        Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            verifyCloudToken(token);
+                        })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    /** Checks the token against GitHub before saving it. */
+    private void verifyCloudToken(String token) {
+        executor.execute(() -> {
+            try {
+                String login = new GitHubClient(token).getUserLogin();
+                runOnUiThread(() -> {
+                    cloudSettings.connect(token, login);
+                    updateCloudRow();
+                    Toast.makeText(this, getString(
+                            R.string.build_cloud_connected, login),
+                            Toast.LENGTH_SHORT).show();
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(this,
+                        R.string.build_cloud_connect_failed,
+                        Toast.LENGTH_LONG).show());
+            }
+        });
     }
 
     private void loadDefaults() {
@@ -249,6 +348,12 @@ public class BuildActivity extends AppCompatActivity {
                     .setMessage(String.join("\n", errors))
                     .setPositiveButton(android.R.string.ok, null)
                     .show();
+            return;
+        }
+        if (config.isCloudBuild() && !cloudSettings.isConnected()) {
+            Toast.makeText(this, R.string.build_cloud_not_connected,
+                    Toast.LENGTH_LONG).show();
+            showCloudConnectDialog();
             return;
         }
         baseConfig = config;

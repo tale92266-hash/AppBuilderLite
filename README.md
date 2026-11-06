@@ -705,6 +705,45 @@ is never parsed as design data.
   current node, executed actions, variables, condition results,
   navigation events and errors, with Start/Step/Run/Reset.
 
+## Phase 15 — Cloud Build: in-app APK (2026-11-06)
+
+- The Build screen has a Build mode selector: **Build APK
+  (cloud)** (default) or **Export project ZIP** (the Phase 9 path,
+  unchanged). Cloud mode builds the APK on GitHub Actions and
+  downloads it back into the app — no PC, no Android Studio.
+- Flow: the app exports the project ZIP exactly like the external
+  engine, uploads it to the user's private repo
+  `appbuilder-cloud-builds`, triggers the workflow
+  (`.github/workflows/appbuilder-cloud-build.yml`), polls the run,
+  downloads the `cloud-apk` artifact and verifies it is a real APK
+  (a ZIP containing `AndroidManifest.xml`). SUCCESS only exists
+  with a verified APK file on disk.
+- GitHub connection: the user pastes a personal access token
+  (classic, `repo` + `workflow` scopes) in the Build screen; the
+  app verifies it against `GET /user` before saving it in
+  app-private preferences (revokable on GitHub at any time).
+  `build/cloud/GitHubClient.java` is pure Java (HttpURLConnection
+  + org.json + `java.util.Base64`) — no new dependencies.
+- Signing: cloud APKs use one FIXED debug keystore
+  (`assets/cloud/cloud-debug.keystore`, alias `androiddebugkey`,
+  conventional `android` passwords), committed to the private
+  build repo and restored to `~/.android/debug.keystore` by the
+  workflow — so every cloud APK installs over the previous one.
+  It is a debug key, never a release key.
+- Limits (shown honestly): needs internet; one build at a time;
+  project ZIPs over 50 MB are refused before uploading; a failed
+  cloud build shows the failing step and never reports success.
+  Phase 2 (later, separate spec): an on-device build pipeline in
+  the style of Code Studio (`com.alif.ide`) — aapt2 + ECJ + d8 +
+  sign, no Gradle.
+- Files: `build/cloud/` (`CloudBuildSettings`, `GitHubClient`,
+  `CloudBuildWorkflow`), `build/engine/CloudBuildEngine.java`,
+  mode field on `BuildConfiguration`, cloud stages on `BuildTask`,
+  dispatch in `BuildManager`, mode spinner in
+  `BuildConfigurationController` + `layout_build_configuration.xml`,
+  `build_modes` array, cloud strings, `INTERNET` +
+  `ACCESS_NETWORK_STATE` permissions.
+
 ## Signing
 
 Every debug APK is signed with one fixed key (keystore

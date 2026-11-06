@@ -13,6 +13,10 @@
         <item>Debug APK</item>
         <item>Release APK</item>
     </string-array>
+    <string-array name="build_modes">
+        <item>Build APK (cloud)</item>
+        <item>Export project ZIP</item>
+    </string-array>
     <integer-array name="min_sdk_values">
         <item>26</item>
         <item>28</item>
