@@ -16,6 +16,14 @@ package com.nobi.appbuilder.build.cloud;
  * cloud APK is signed with the same key and installs over the
  * previous one. It is a debug key, not a release key, and anyone
  * can generate one — it must never be used for release signing.
+ * The keystore is restored to every place AGP might look for the
+ * debug keystore: AGP resolves it via AndroidLocation, which
+ * prefers ANDROID_USER_HOME, then $ANDROID_SDK_HOME/.android,
+ * then ~/.android — and the GitHub runner sets ANDROID_SDK_HOME,
+ * so copying to ~/.android alone is NOT enough (a build then
+ * silently signs with a freshly generated key instead). The
+ * build step also exports ANDROID_USER_HOME="$HOME/.android"
+ * to force the lookup onto the restored key.
  */
 public final class CloudBuildWorkflow {
 
@@ -70,13 +78,23 @@ public final class CloudBuildWorkflow {
                 + "          mkdir -p ~/.android\n"
                 + "          cp .cloud/cloud-debug.keystore "
                 + "~/.android/debug.keystore\n"
+                + "          if [ -n \"$ANDROID_SDK_HOME\" ]; then\n"
+                + "            mkdir -p \"$ANDROID_SDK_HOME/.android\"\n"
+                + "            cp .cloud/cloud-debug.keystore "
+                + "\"$ANDROID_SDK_HOME/.android/debug.keystore\"\n"
+                + "          fi\n"
+                + "          keytool -list -v -keystore "
+                + "~/.android/debug.keystore -storepass android "
+                + "-alias androiddebugkey | grep SHA256\n"
                 + "\n"
                 + "      - name: Grant execute permission for gradlew\n"
                 + "        run: chmod +x project/gradlew\n"
                 + "\n"
                 + "      - name: Build debug APK\n"
                 + "        working-directory: project\n"
-                + "        run: ./gradlew :app:assembleDebug --stacktrace\n"
+                + "        run: |\n"
+                + "          export ANDROID_USER_HOME=\"$HOME/.android\"\n"
+                + "          ./gradlew :app:assembleDebug --stacktrace\n"
                 + "\n"
                 + "      - name: Upload APK\n"
                 + "        uses: actions/upload-artifact@v4\n"
