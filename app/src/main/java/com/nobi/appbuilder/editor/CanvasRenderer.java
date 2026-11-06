@@ -72,6 +72,25 @@ public class CanvasRenderer {
         }
         drawGuides(canvas, guides, transform);
         drawSelection(canvas, state, viewport);
+        drawMarquee(canvas, state, transform);
+    }
+
+    /** Phase 5: rubber-band rectangle while marquee-selecting. */
+    private void drawMarquee(Canvas canvas, CanvasState state, CanvasTransform transform) {
+        RectF design = state.getMarqueeRect();
+        if (design == null) {
+            return;
+        }
+        RectF screen = new RectF();
+        transform.designToScreenRect(design, screen);
+        Paint fill = new Paint();
+        fill.setColor(Color.parseColor("#330B4499"));
+        canvas.drawRect(screen, fill);
+        Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+        stroke.setStyle(Paint.Style.STROKE);
+        stroke.setColor(Color.parseColor("#0B4499"));
+        stroke.setStrokeWidth(1.5f * transform.getDensity());
+        canvas.drawRect(screen, stroke);
     }
 
     private RectF rectAt(int index) {

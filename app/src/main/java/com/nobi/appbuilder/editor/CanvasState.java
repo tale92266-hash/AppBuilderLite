@@ -29,6 +29,8 @@ public class CanvasState {
     private float designHeightDp;
     private boolean gridVisible;
     private boolean snapEnabled;
+    /** Phase 5: marquee (rubber-band) rectangle in design coords, or null. */
+    private android.graphics.RectF marqueeRect;
 
     public CanvasState() {
         designWidthDp = DEFAULT_DESIGN_WIDTH_DP;
@@ -78,6 +80,14 @@ public class CanvasState {
         return snapEnabled;
     }
 
+    public android.graphics.RectF getMarqueeRect() {
+        return marqueeRect;
+    }
+
+    public void setMarqueeRect(android.graphics.RectF marqueeRect) {
+        this.marqueeRect = marqueeRect;
+    }
+
     public void setSnapEnabled(boolean snapEnabled) {
         this.snapEnabled = snapEnabled;
     }
@@ -105,6 +115,13 @@ public class CanvasState {
         }
         if (!selectedIds.remove(componentId)) {
             selectedIds.add(componentId);
+        }
+    }
+
+    /** Phase 5: removes one id from the selection without clearing it. */
+    public void removeFromSelection(String componentId) {
+        if (componentId != null) {
+            selectedIds.remove(componentId);
         }
     }
 

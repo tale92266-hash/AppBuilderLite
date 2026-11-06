@@ -35,6 +35,11 @@ public class HierarchyPanelController {
         void onDocumentCommitted();
 
         void onTreeError(String message);
+
+        /** Phase 5: a hierarchy drag finished; build one reparent command. */
+        default void onReparentCommitted(ComponentModel model,
+                                         ComponentModel oldParent, int oldIndex) {
+        }
     }
 
     private final RecyclerView list;
@@ -77,6 +82,12 @@ public class HierarchyPanelController {
                     @Override
                     public void onTreeError(String message) {
                         listener.onTreeError(message);
+                    }
+
+                    @Override
+                    public void onReparentCommitted(ComponentModel model,
+                                                    ComponentModel oldParent, int oldIndex) {
+                        listener.onReparentCommitted(model, oldParent, oldIndex);
                     }
                 });
         this.adapter = new ComponentTreeAdapter(state, treeController,
@@ -151,6 +162,11 @@ public class HierarchyPanelController {
 
     public ComponentTreeController getTreeController() {
         return treeController;
+    }
+
+    /** Phase 5: routes tree mutations through the command engine. */
+    public void setCommandRunner(com.nobi.appbuilder.history.CommandManager.CommandRunner runner) {
+        treeController.setCommandRunner(runner);
     }
 
     public boolean isExpanded() {

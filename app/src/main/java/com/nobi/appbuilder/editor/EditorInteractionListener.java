@@ -28,4 +28,14 @@ public interface EditorInteractionListener {
 
     /** Zoom changed; update the zoom label. */
     void onZoomChanged(float zoom);
+
+    /** Phase 5: a drag finished; build one MoveComponentCommand from it. */
+    default void onDragCommitted(java.util.List<ComponentModel> models,
+                                 java.util.Map<String, float[]> startPositions) {
+    }
+
+    /** Phase 5: a resize finished; build one ResizeComponentCommand. */
+    default void onResizeCommitted(ComponentModel target,
+                                   android.graphics.RectF startBounds) {
+    }
 }

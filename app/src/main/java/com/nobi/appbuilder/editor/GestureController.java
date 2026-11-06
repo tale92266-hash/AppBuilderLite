@@ -168,14 +168,25 @@ public class GestureController {
 
     private void finishGesture(MotionEvent event) {
         if (dragController.isDragging()) {
+            java.util.List<ComponentModel> models = dragController.getDragModels();
+            java.util.Map<String, float[]> starts = dragController.getStartPositions();
             boolean moved = dragController.endDrag();
             if (moved) {
+                listener.onDragCommitted(models, starts);
                 listener.onDocumentCommitted();
             }
             invalidate();
         }
         if (resizeController.isActive()) {
+            ComponentModel target = resizeController.getTarget();
+            int[] startModel = resizeController.getStartModelBounds();
+            android.graphics.RectF startBounds = new android.graphics.RectF(
+                    startModel[0], startModel[1],
+                    startModel[0] + startModel[2], startModel[1] + startModel[3]);
             resizeController.endResize();
+            if (target != null) {
+                listener.onResizeCommitted(target, startBounds);
+            }
             listener.onDocumentCommitted();
             invalidate();
         }

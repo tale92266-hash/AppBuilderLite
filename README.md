@@ -157,6 +157,71 @@ Properties inspector + advanced component hierarchy.
 - Phase 8: Full Android Studio project export as ZIP
 - Phase 9: Testing + performance
 
+## Phase 5 — Editor Productivity & Project Management Engine (2026-11-06)
+
+Replaces the Phase 3 snapshot undo stack with a real command engine and
+adds clipboard, multi-selection, grouping, autosave/recovery and screen
+management. Phases 1–4 stay fully functional; no Phase 1–4 class was
+recreated or replaced.
+
+**Included**
+
+- `history/` — `EditorCommand` interface, `CommandHistory` (undo/redo
+  stacks, max 100, no full-document copies), `CommandManager`
+  (execute/undo/redo, grouped transactions, failed-command safety),
+  `CommandTransaction` (composite) and 9 commands: Add, Delete, Move
+  (one entry per drag), Resize (one entry per gesture), UpdateProperty
+  (incl. visibility + lock), Duplicate, Reparent, Rename, Group
+  (with nested Ungroup), Reorder. Drag/resize commit hooks in
+  `GestureController` + `DragController`/`ResizeController` start-state
+  getters build the command at gesture end.
+- `clipboard/` — `EditorClipboard` (one ClipboardData per editor),
+  `ClipboardData` (cloned subtrees + source screen id),
+  `ComponentCloner` (fresh ids on every clone/paste, no duplicate ids),
+  `PasteController` (offset paste, parent-bound clamping, returns
+  AddComponentCommands; cross-screen paste within the project).
+- `selection/` — `MultiSelectionManager` (tap, additive, select-all,
+  deselect-all, marquee rectangle — topmost only, never a parent with
+  its own children), `SelectionBounds` (combined outline),
+  `GroupSelectionController` (group/ungroup entry points + validation).
+  Marquee: rubber-band rect drawn by `CanvasRenderer`, handled by
+  `SelectionTool`.
+- `autosave/` — `AutosaveManager` (800 ms debounce, background write,
+  explicit Save + exit flush, toolbar save-status subtitle),
+  `RecoveryManager` (30 s periodic snapshots + on-pause snapshot,
+  atomic INSERT OR REPLACE, restore/discard dialog on open),
+  `RecoverySnapshot`, `ProjectBackupManager` (last saved document kept
+  before every overwrite). DB migration v1 → v2 adds the
+  `recovery_snapshots` and `project_backups` tables (FK cascade) plus
+  `screen_type`/`orientation` columns on screens.
+- `screens/` — `ScreenManager` (create/rename/duplicate/delete/reorder/
+  launcher/type/orientation), `ScreenNavigator` (open by stable id,
+  starting screen, validates `navigate` event targets against existing
+  screens), `ScreenDuplicator` (deep clone, fresh ids), `ScreenValidator`
+  (name uniqueness, last-screen protection). Reuses the Phase 1
+  `database.ScreenRepository` — deliberately no second one.
+  `ScreenModel` gains `screenType` (activity/dialog/bottom_sheet/custom)
+  and `orientation`.
+- `project/` — `ProjectManager` (recent/name sort, search, duplicate,
+  rename, delete with recovery+backup cleanup), `ProjectImportManager`
+  (IR JSON import, fresh ids on collision), `ProjectExportManager`
+  (IR JSON export), `ProjectSettingsManager` (app/package/version/SDK/
+  orientation/starting-screen, validated before saving; build files
+  untouched).
+- UI — toolbar gains Copy/Paste/Duplicate/Screens; a contextual
+  selection toolbar (Group/Ungroup/Delete/Lock/Visibility/Select all);
+  a screen manager dialog (list, add, duplicate, rename, delete, set
+  starting screen); dashboard sort (recent/name), per-project Export
+  and Project Settings dialog.
+
+**Notes**
+
+- The properties panel never rebuilds or re-reads its rows on a command,
+  so typing in a text editor keeps focus and cursor position.
+- Editor-only hidden state is the `visibility` model property; it is
+  preserved in JSON and only Phase 7 generation decides what the app
+  shows.
+
 ## Signing
 
 Every debug APK is signed with one fixed key (keystore

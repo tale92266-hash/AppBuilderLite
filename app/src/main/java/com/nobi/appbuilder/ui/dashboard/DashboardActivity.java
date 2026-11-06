@@ -36,15 +36,20 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.nobi.appbuilder.R;
+import com.nobi.appbuilder.autosave.ProjectBackupManager;
+import com.nobi.appbuilder.autosave.RecoveryManager;
 import com.nobi.appbuilder.components.ComponentFactory;
 import com.nobi.appbuilder.database.DatabaseHelper;
 import com.nobi.appbuilder.database.ProjectRepository;
 import com.nobi.appbuilder.database.ScreenRepository;
-import com.nobi.appbuilder.ir.IRDeserializer;
 import com.nobi.appbuilder.ir.IRDocument;
 import com.nobi.appbuilder.model.ComponentModel;
 import com.nobi.appbuilder.model.ProjectModel;
 import com.nobi.appbuilder.model.ScreenModel;
+import com.nobi.appbuilder.project.ProjectExportManager;
+import com.nobi.appbuilder.project.ProjectImportManager;
+import com.nobi.appbuilder.project.ProjectManager;
+import com.nobi.appbuilder.project.ProjectSettingsManager;
 import com.nobi.appbuilder.repository.DocumentRepository;
 import com.nobi.appbuilder.ui.editor.EditorActivity;
 import com.nobi.appbuilder.utils.FileUtils;
@@ -74,12 +79,22 @@ public class DashboardActivity extends AppCompatActivity {
     private static final int MENU_RENAME = 2;
     private static final int MENU_DUPLICATE = 3;
     private static final int MENU_DELETE = 4;
+    private static final int MENU_EXPORT = 5;
+    private static final int MENU_SETTINGS = 6;
 
     private DatabaseHelper dbHelper;
     private ProjectRepository projectRepository;
     private ScreenRepository screenRepository;
     private ExecutorService executor;
     private Handler mainHandler;
+
+    /** Phase 5 project engines. */
+    private ProjectManager projectManager;
+    private ProjectImportManager importManager;
+    private ProjectExportManager exportManager;
+    private ProjectSettingsManager settingsManager;
+    private ProjectModel pendingExportProject;
+    private int sortMode = ProjectManager.SORT_RECENT;
 
     private RecyclerView recyclerProjects;
     private View emptyState;
@@ -98,6 +113,15 @@ public class DashboardActivity extends AppCompatActivity {
                         }
                     });
 
+    private final ActivityResultLauncher<String> exportLauncher =
+            registerForActivityResult(new ActivityResultContracts.CreateDocument(
+                    "application/json"), uri -> {
+                if (uri != null && pendingExportProject != null) {
+                    writeExport(uri, pendingExportProject);
+                    pendingExportProject = null;
+                }
+            });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -108,6 +132,16 @@ public class DashboardActivity extends AppCompatActivity {
         screenRepository = new ScreenRepository(dbHelper);
         executor = Executors.newSingleThreadExecutor();
         mainHandler = new Handler(Looper.getMainLooper());
+
+        RecoveryManager recoveryManager = new RecoveryManager(dbHelper, executor);
+        ProjectBackupManager backupManager = new ProjectBackupManager(dbHelper, executor);
+        projectManager = new ProjectManager(projectRepository,
+                recoveryManager, backupManager);
+        importManager = new ProjectImportManager(new DocumentRepository(dbHelper));
+        exportManager = new ProjectExportManager(new DocumentRepository(dbHelper));
+        settingsManager = new ProjectSettingsManager(dbHelper, projectRepository);
+        sortMode = getSharedPreferences("appbuilder_prefs", MODE_PRIVATE)
+                .getInt("dashboard_sort", ProjectManager.SORT_RECENT);
 
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -147,6 +181,10 @@ public class DashboardActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_dashboard, menu);
+        menu.findItem(R.id.action_sort_recent).setChecked(
+                sortMode == ProjectManager.SORT_RECENT);
+        menu.findItem(R.id.action_sort_name).setChecked(
+                sortMode == ProjectManager.SORT_NAME);
         return true;
     }
 
@@ -159,8 +197,22 @@ public class DashboardActivity extends AppCompatActivity {
         } else if (id == R.id.action_settings) {
             showSettingsDialog();
             return true;
+        } else if (id == R.id.action_sort_recent) {
+            setSortMode(ProjectManager.SORT_RECENT);
+            return true;
+        } else if (id == R.id.action_sort_name) {
+            setSortMode(ProjectManager.SORT_NAME);
+            return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void setSortMode(int mode) {
+        sortMode = mode;
+        getSharedPreferences("appbuilder_prefs", MODE_PRIVATE)
+                .edit().putInt("dashboard_sort", mode).apply();
+        invalidateOptionsMenu();
+        loadProjects();
     }
 
     @Override
@@ -177,7 +229,7 @@ public class DashboardActivity extends AppCompatActivity {
     private void loadProjects() {
         executor.execute(() -> {
             try {
-                List<ProjectModel> projects = projectRepository.getAll();
+                List<ProjectModel> projects = projectManager.getProjects(sortMode);
                 for (ProjectModel project : projects) {
                     project.setScreenCount(projectRepository.countScreens(project.getId()));
                 }
@@ -414,7 +466,7 @@ public class DashboardActivity extends AppCompatActivity {
                 .setMessage(R.string.dialog_delete_body)
                 .setPositiveButton(R.string.action_delete, (d, w) -> {
                     executor.execute(() -> {
-                        projectRepository.delete(project.getId());
+                        projectManager.deleteProject(project.getId());
                         FileUtils.deleteRecursive(
                                 FileUtils.getProjectDir(this, project.getId()));
                         mainHandler.post(() -> {
@@ -430,7 +482,7 @@ public class DashboardActivity extends AppCompatActivity {
 
     private void duplicateProject(ProjectModel project) {
         executor.execute(() -> {
-            ProjectModel copy = projectRepository.duplicate(project.getId());
+            ProjectModel copy = projectManager.duplicateProject(project.getId());
             mainHandler.post(() -> {
                 if (copy != null) {
                     Toast.makeText(this, R.string.msg_project_duplicated,
@@ -447,59 +499,195 @@ public class DashboardActivity extends AppCompatActivity {
 
     private void importProject(Uri uri) {
         executor.execute(() -> {
-            IRDocument imported = null;
+            String json = null;
             try {
-                String json = FileUtils.readStreamToString(
+                json = FileUtils.readStreamToString(
                         getContentResolver().openInputStream(uri));
-                imported = IRDeserializer.deserializeDocument(json);
-            } catch (Exception e) {
-                imported = null;
+            } catch (Exception ignored) {
             }
-            final IRDocument document = imported;
+            ProjectImportManager.ImportResult result =
+                    importManager.importFromJson(json);
             mainHandler.post(() -> {
-                if (document == null) {
-                    Toast.makeText(this, R.string.msg_import_failed,
-                            Toast.LENGTH_LONG).show();
-                    return;
-                }
-                saveImportedProject(document);
-            });
-        });
-    }
-
-    private void saveImportedProject(IRDocument document) {
-        executor.execute(() -> {
-            ProjectModel project = document.toProject();
-            if (projectRepository.getById(project.getId()) != null) {
-                project.setId(IDGenerator.newProjectId());
-            }
-            List<ScreenModel> screens = new ArrayList<>(project.getScreens());
-            ScreenModel first = screens.isEmpty() ? null : screens.remove(0);
-            if (first != null) {
-                first.setId(IDGenerator.newScreenId());
-                first.setProjectId(project.getId());
-            }
-            boolean ok = projectRepository.insert(project, first);
-            if (ok) {
-                for (ScreenModel screen : screens) {
-                    screen.setId(IDGenerator.newScreenId());
-                    screen.setProjectId(project.getId());
-                    screenRepository.insert(screen);
-                }
-                new DocumentRepository(dbHelper)
-                        .saveTheme(project.getId(), document.getTheme());
-            }
-            mainHandler.post(() -> {
-                if (ok) {
+                if (result.project != null) {
                     Toast.makeText(this, R.string.msg_project_imported,
                             Toast.LENGTH_SHORT).show();
                     loadProjects();
                 } else {
-                    Toast.makeText(this, R.string.msg_import_failed,
+                    Toast.makeText(this, result.error == null
+                                    ? getString(R.string.msg_import_failed)
+                                    : result.error,
                             Toast.LENGTH_LONG).show();
                 }
             });
         });
+    }
+
+    // ------------------------------------------------------------------
+    // Export and project settings (Phase 5)
+    // ------------------------------------------------------------------
+
+    private void exportProject(ProjectModel project) {
+        pendingExportProject = project;
+        exportLauncher.launch(
+                ProjectExportManager.fileNameFor(project.getAppName()));
+    }
+
+    private void writeExport(Uri uri, ProjectModel project) {
+        executor.execute(() -> {
+            String json = exportManager.exportToJson(project.getId());
+            boolean ok = false;
+            if (json != null) {
+                try (java.io.OutputStream out =
+                             getContentResolver().openOutputStream(uri)) {
+                    if (out != null) {
+                        out.write(json.getBytes(
+                                java.nio.charset.StandardCharsets.UTF_8));
+                        ok = true;
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+            boolean success = ok;
+            mainHandler.post(() -> Toast.makeText(this,
+                    success ? R.string.msg_exported : R.string.msg_export_failed,
+                    Toast.LENGTH_SHORT).show());
+        });
+    }
+
+    private void showProjectSettingsDialog(ProjectModel project) {
+        executor.execute(() -> {
+            List<ScreenModel> screens = screenRepository.getByProject(project.getId());
+            String versionName = settingsManager.getSetting(project.getId(),
+                    ProjectSettingsManager.KEY_VERSION_NAME, "1.0");
+            String versionCode = settingsManager.getSetting(project.getId(),
+                    ProjectSettingsManager.KEY_VERSION_CODE, "1");
+            String targetSdk = settingsManager.getSetting(project.getId(),
+                    ProjectSettingsManager.KEY_TARGET_SDK, "35");
+            String orientation = settingsManager.getSetting(project.getId(),
+                    ProjectSettingsManager.KEY_DEFAULT_ORIENTATION, "portrait");
+            String startingScreen = settingsManager.getSetting(project.getId(),
+                    ProjectSettingsManager.KEY_STARTING_SCREEN, "");
+            mainHandler.post(() -> showProjectSettingsForm(project, screens,
+                    versionName, versionCode, targetSdk, orientation, startingScreen));
+        });
+    }
+
+    private void showProjectSettingsForm(ProjectModel project,
+                                         List<ScreenModel> screens,
+                                         String versionName, String versionCode,
+                                         String targetSdk, String orientation,
+                                         String startingScreen) {
+        View view = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_project_settings, null);
+        TextInputEditText editAppName = view.findViewById(R.id.input_settings_app_name);
+        TextInputEditText editPackage = view.findViewById(R.id.input_settings_package);
+        TextInputEditText editVersionName =
+                view.findViewById(R.id.input_settings_version_name);
+        TextInputEditText editVersionCode =
+                view.findViewById(R.id.input_settings_version_code);
+        TextInputEditText editMinSdk = view.findViewById(R.id.input_settings_min_sdk);
+        TextInputEditText editTargetSdk =
+                view.findViewById(R.id.input_settings_target_sdk);
+        Spinner spinnerOrientation =
+                view.findViewById(R.id.spinner_settings_orientation);
+        Spinner spinnerStartingScreen =
+                view.findViewById(R.id.spinner_settings_starting_screen);
+
+        editAppName.setText(project.getAppName());
+        editPackage.setText(project.getPackageName());
+        editVersionName.setText(versionName);
+        editVersionCode.setText(versionCode);
+        editMinSdk.setText(String.valueOf(project.getMinSdk()));
+        editTargetSdk.setText(targetSdk);
+
+        ArrayAdapter<String> orientationAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item,
+                new String[]{"portrait", "landscape"});
+        orientationAdapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item);
+        spinnerOrientation.setAdapter(orientationAdapter);
+        spinnerOrientation.setSelection("landscape".equals(orientation) ? 1 : 0);
+
+        List<String> screenNames = new ArrayList<>();
+        List<String> screenIds = new ArrayList<>();
+        for (ScreenModel screen : screens) {
+            screenNames.add(screen.getName());
+            screenIds.add(screen.getId());
+        }
+        ArrayAdapter<String> screenAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, screenNames);
+        screenAdapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item);
+        spinnerStartingScreen.setAdapter(screenAdapter);
+        int startingIndex = screenIds.indexOf(startingScreen);
+        if (startingIndex < 0) {
+            for (int i = 0; i < screens.size(); i++) {
+                if (screens.get(i).isLauncher()) {
+                    startingIndex = i;
+                    break;
+                }
+            }
+        }
+        if (startingIndex >= 0) {
+            spinnerStartingScreen.setSelection(startingIndex);
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(view)
+                .setPositiveButton(R.string.action_save, null)
+                .setNegativeButton(R.string.action_cancel, null)
+                .create();
+        dialog.setOnShowListener(d -> {
+            Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positive.setOnClickListener(v -> {
+                String appName = editAppName.getText().toString();
+                String packageName = editPackage.getText().toString();
+                String vName = editVersionName.getText().toString();
+                String vCode = editVersionCode.getText().toString();
+                int minSdk;
+                int target;
+                try {
+                    minSdk = Integer.parseInt(editMinSdk.getText().toString().trim());
+                    target = Integer.parseInt(editTargetSdk.getText().toString().trim());
+                } catch (Exception e) {
+                    Toast.makeText(this, R.string.msg_settings_invalid,
+                            Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                int selectedScreen = spinnerStartingScreen.getSelectedItemPosition();
+                String startId = screenIds.isEmpty() || selectedScreen < 0 ? ""
+                        : screenIds.get(selectedScreen);
+                String error = settingsManager.validate(appName, packageName,
+                        vName, vCode, minSdk, target, startId, screenIds);
+                if (error != null) {
+                    Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                    return;
+                }
+                String orientationValue = spinnerOrientation.getSelectedItemPosition() == 1
+                        ? "landscape" : "portrait";
+                executor.execute(() -> {
+                    boolean ok = settingsManager.apply(project.getId(), appName,
+                            packageName, vName, vCode, minSdk, target, "",
+                            "", orientationValue, startId);
+                    if (ok && !startId.isEmpty()) {
+                        new com.nobi.appbuilder.screens.ScreenManager(
+                                screenRepository).setLauncherScreen(startId);
+                    }
+                    mainHandler.post(() -> {
+                        if (ok) {
+                            Toast.makeText(this, R.string.msg_settings_saved,
+                                    Toast.LENGTH_SHORT).show();
+                            dialog.dismiss();
+                            loadProjects();
+                        } else {
+                            Toast.makeText(this, R.string.msg_settings_invalid,
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                });
+            });
+        });
+        dialog.show();
     }
 
     private void showSettingsDialog() {
@@ -590,6 +778,8 @@ public class DashboardActivity extends AppCompatActivity {
             menu.getMenu().add(0, MENU_OPEN, 0, R.string.action_open);
             menu.getMenu().add(0, MENU_RENAME, 0, R.string.action_rename);
             menu.getMenu().add(0, MENU_DUPLICATE, 0, R.string.action_duplicate);
+            menu.getMenu().add(0, MENU_EXPORT, 0, R.string.action_export);
+            menu.getMenu().add(0, MENU_SETTINGS, 0, R.string.action_project_settings);
             menu.getMenu().add(0, MENU_DELETE, 0, R.string.action_delete);
             menu.setOnMenuItemClickListener(item -> {
                 int id = item.getItemId();
@@ -599,6 +789,10 @@ public class DashboardActivity extends AppCompatActivity {
                     showRenameDialog(project);
                 } else if (id == MENU_DUPLICATE) {
                     duplicateProject(project);
+                } else if (id == MENU_EXPORT) {
+                    exportProject(project);
+                } else if (id == MENU_SETTINGS) {
+                    showProjectSettingsDialog(project);
                 } else if (id == MENU_DELETE) {
                     confirmDelete(project);
                 }

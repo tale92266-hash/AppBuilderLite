@@ -141,6 +141,8 @@ public class ProjectRepository {
                     IDGenerator.newScreenId(), copy.getId(), screen.getName(),
                     screen.isLauncher(), screen.getSortOrder());
             screenCopy.setDesignJson(screen.getDesignJson());
+            screenCopy.setScreenType(screen.getScreenType());
+            screenCopy.setOrientation(screen.getOrientation());
             copiedScreens.add(screenCopy);
             if (firstScreen == null) {
                 firstScreen = screenCopy;

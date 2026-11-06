@@ -133,6 +133,61 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/selection_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:visibility="gone">
+
+        <Button
+            android:id="@+id/btn_sel_group"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sel_group" />
+
+        <Button
+            android:id="@+id/btn_sel_ungroup"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sel_ungroup" />
+
+        <Button
+            android:id="@+id/btn_sel_delete"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sel_delete" />
+
+        <Button
+            android:id="@+id/btn_sel_lock"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sel_lock" />
+
+        <Button
+            android:id="@+id/btn_sel_visibility"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sel_visibility" />
+
+        <Button
+            android:id="@+id/btn_sel_all"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sel_select_all" />
+
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/hierarchy_panel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

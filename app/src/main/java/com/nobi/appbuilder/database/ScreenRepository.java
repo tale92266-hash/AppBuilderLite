@@ -45,6 +45,8 @@ public class ScreenRepository {
         values.put("is_launcher", screen.isLauncher() ? 1 : 0);
         values.put("sort_order", screen.getSortOrder());
         values.put("design_json", screen.getDesignJson());
+        values.put("screen_type", screen.getScreenType());
+        values.put("orientation", screen.getOrientation());
         values.put("created_at", screen.getCreatedAt());
         values.put("updated_at", screen.getUpdatedAt());
         db.insertOrThrow(DatabaseHelper.TABLE_SCREENS, null, values);
@@ -82,6 +84,8 @@ public class ScreenRepository {
         values.put("is_launcher", screen.isLauncher() ? 1 : 0);
         values.put("sort_order", screen.getSortOrder());
         values.put("design_json", screen.getDesignJson());
+        values.put("screen_type", screen.getScreenType());
+        values.put("orientation", screen.getOrientation());
         values.put("updated_at", screen.getUpdatedAt());
         int rows = db.update(DatabaseHelper.TABLE_SCREENS, values,
                 "id = ?", new String[]{screen.getId()});
@@ -111,6 +115,14 @@ public class ScreenRepository {
         screen.setDesignJson(cursor.getString(cursor.getColumnIndexOrThrow("design_json")));
         screen.setCreatedAt(cursor.getLong(cursor.getColumnIndexOrThrow("created_at")));
         screen.setUpdatedAt(cursor.getLong(cursor.getColumnIndexOrThrow("updated_at")));
+        int typeIndex = cursor.getColumnIndex("screen_type");
+        if (typeIndex >= 0 && !cursor.isNull(typeIndex)) {
+            screen.setScreenType(cursor.getString(typeIndex));
+        }
+        int orientationIndex = cursor.getColumnIndex("orientation");
+        if (orientationIndex >= 0 && !cursor.isNull(orientationIndex)) {
+            screen.setOrientation(cursor.getString(orientationIndex));
+        }
         return screen;
     }
 }

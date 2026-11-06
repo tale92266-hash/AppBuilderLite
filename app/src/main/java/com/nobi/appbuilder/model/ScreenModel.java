@@ -9,6 +9,14 @@ import com.google.gson.GsonBuilder;
  */
 public class ScreenModel {
 
+    public static final String TYPE_ACTIVITY = "activity";
+    public static final String TYPE_DIALOG = "dialog";
+    public static final String TYPE_BOTTOM_SHEET = "bottom_sheet";
+    public static final String TYPE_CUSTOM = "custom";
+
+    public static final String ORIENTATION_PORTRAIT = "portrait";
+    public static final String ORIENTATION_LANDSCAPE = "landscape";
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private String id;
@@ -19,6 +27,10 @@ public class ScreenModel {
     private String designJson;
     private long createdAt;
     private long updatedAt;
+    /** Phase 5: screen type (activity first; others are model-only until
+     * their rendering/generation rules land). */
+    private String screenType = TYPE_ACTIVITY;
+    private String orientation = ORIENTATION_PORTRAIT;
 
     public ScreenModel() {
     }
@@ -57,6 +69,27 @@ public class ScreenModel {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getScreenType() {
+        return screenType == null ? TYPE_ACTIVITY : screenType;
+    }
+
+    public void setScreenType(String screenType) {
+        this.screenType = screenType;
+    }
+
+    public String getOrientation() {
+        return orientation == null ? ORIENTATION_PORTRAIT : orientation;
+    }
+
+    public void setOrientation(String orientation) {
+        this.orientation = orientation;
+    }
+
+    public static boolean isValidScreenType(String type) {
+        return TYPE_ACTIVITY.equals(type) || TYPE_DIALOG.equals(type)
+                || TYPE_BOTTOM_SHEET.equals(type) || TYPE_CUSTOM.equals(type);
     }
 
     public boolean isLauncher() {

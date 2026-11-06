@@ -8,10 +8,19 @@ import android.view.DragEvent;
 import android.view.MotionEvent;
 import android.view.View;
 
+import com.nobi.appbuilder.clipboard.ClipboardData;
+import com.nobi.appbuilder.clipboard.PasteController;
 import com.nobi.appbuilder.components.ComponentFactory;
 import com.nobi.appbuilder.editor.tools.DragTool;
 import com.nobi.appbuilder.editor.tools.HandTool;
 import com.nobi.appbuilder.editor.tools.SelectionTool;
+import com.nobi.appbuilder.history.AddComponentCommand;
+import com.nobi.appbuilder.history.CommandManager;
+import com.nobi.appbuilder.history.CommandTransaction;
+import com.nobi.appbuilder.history.DeleteComponentCommand;
+import com.nobi.appbuilder.history.DuplicateComponentCommand;
+import com.nobi.appbuilder.history.EditorCommand;
+import com.nobi.appbuilder.history.ReorderComponentCommand;
 import com.nobi.appbuilder.model.ComponentModel;
 import com.nobi.appbuilder.model.ScreenModel;
 
@@ -33,6 +42,9 @@ public class DesignCanvasView extends View {
     private ResizeController resizeController;
     private CanvasState state;
     private EditorInteractionListener listener;
+    /** Phase 5: when set, mutations run as commands through the activity. */
+    private CommandManager.CommandRunner commandRunner;
+    private final PasteController pasteController = new PasteController();
 
     public DesignCanvasView(Context context) {
         super(context);
@@ -105,6 +117,22 @@ public class DesignCanvasView extends View {
                             listener.onZoomChanged(zoom);
                         }
                     }
+
+                    @Override
+                    public void onDragCommitted(java.util.List<ComponentModel> models,
+                                                java.util.Map<String, float[]> startPositions) {
+                        if (listener != null) {
+                            listener.onDragCommitted(models, startPositions);
+                        }
+                    }
+
+                    @Override
+                    public void onResizeCommitted(ComponentModel target,
+                                                  android.graphics.RectF startBounds) {
+                        if (listener != null) {
+                            listener.onResizeCommitted(target, startBounds);
+                        }
+                    }
                 });
         state.setCurrentTool(new SelectionTool());
         setFocusable(true);
@@ -113,6 +141,10 @@ public class DesignCanvasView extends View {
 
     public void setListener(EditorInteractionListener listener) {
         this.listener = listener;
+    }
+
+    public void setCommandRunner(CommandManager.CommandRunner commandRunner) {
+        this.commandRunner = commandRunner;
     }
 
     public CanvasState getState() {
@@ -204,7 +236,7 @@ public class DesignCanvasView extends View {
     }
 
     /** Deletes the selection (root can never be deleted, locked models
-     * are skipped). */
+     * are skipped). Phase 5: one DeleteComponentCommand per model. */
     public boolean deleteSelected() {
         List<ComponentModel> selected = state.getSelectedModels();
         if (selected.isEmpty()) {
@@ -218,6 +250,17 @@ public class DesignCanvasView extends View {
         }
         if (deletable.isEmpty()) {
             return false;
+        }
+        if (commandRunner != null) {
+            CommandTransaction transaction =
+                    new CommandTransaction("Delete " + deletable.size() + " components");
+            for (ComponentModel model : deletable) {
+                transaction.add(new DeleteComponentCommand(state.getRoot(), model));
+            }
+            boolean ok = commandRunner.run(transaction);
+            state.clearSelection();
+            invalidate();
+            return ok;
         }
         if (listener != null) {
             listener.onMutationStarting();
@@ -243,6 +286,23 @@ public class DesignCanvasView extends View {
         List<ComponentModel> selected = state.getSelectedModels();
         if (selected.isEmpty()) {
             return false;
+        }
+        if (commandRunner != null) {
+            CommandTransaction transaction =
+                    new CommandTransaction("Duplicate " + selected.size() + " components");
+            List<DuplicateComponentCommand> commands = new ArrayList<>();
+            for (ComponentModel model : selected) {
+                DuplicateComponentCommand command =
+                        new DuplicateComponentCommand(state.getRoot(), model);
+                commands.add(command);
+                transaction.add(command);
+            }
+            boolean ok = commandRunner.run(transaction);
+            if (ok && !commands.isEmpty()) {
+                state.select(commands.get(commands.size() - 1).getCopy().getId());
+            }
+            invalidate();
+            return ok;
         }
         if (listener != null) {
             listener.onMutationStarting();
@@ -286,6 +346,28 @@ public class DesignCanvasView extends View {
         if (clipboard == null || state.getRoot() == null) {
             return null;
         }
+        if (commandRunner != null) {
+            List<ComponentModel> stored = new ArrayList<>();
+            stored.add(clipboard);
+            ClipboardData data = new ClipboardData(stored, null);
+            PasteController.PasteResult result = pasteController.preparePaste(
+                    data, state.getRoot(), null, PasteController.PASTE_OFFSET_DP);
+            if (result.error != null || result.pasted.isEmpty()) {
+                return null;
+            }
+            CommandTransaction transaction =
+                    new CommandTransaction("Paste " + result.pasted.size() + " components");
+            for (EditorCommand command : result.commands) {
+                transaction.add(command);
+            }
+            boolean ok = commandRunner.run(transaction);
+            if (ok) {
+                state.select(result.pasted.get(result.pasted.size() - 1).getId());
+                invalidate();
+                return result.pasted.get(result.pasted.size() - 1);
+            }
+            return null;
+        }
         if (listener != null) {
             listener.onMutationStarting();
         }
@@ -322,6 +404,12 @@ public class DesignCanvasView extends View {
         int swap = forward ? index + 1 : index - 1;
         if (index < 0 || swap < 0 || swap >= children.size()) {
             return false;
+        }
+        if (commandRunner != null) {
+            boolean ok = commandRunner.run(
+                    new ReorderComponentCommand(state.getRoot(), model, swap));
+            invalidate();
+            return ok;
         }
         if (listener != null) {
             listener.onMutationStarting();
@@ -367,11 +455,25 @@ public class DesignCanvasView extends View {
             if (type == null) {
                 return false;
             }
+            float designX = viewport.getTransform().screenToDesignX(event.getX());
+            float designY = viewport.getTransform().screenToDesignY(event.getY());
+            if (commandRunner != null) {
+                DragController.PreparedDrop prepared =
+                        dragController.prepareNewComponent(
+                                type.toString(), designX, designY);
+                if (prepared != null) {
+                    boolean ok = commandRunner.run(new AddComponentCommand(
+                            prepared.parent, prepared.model, -1));
+                    if (ok) {
+                        state.select(prepared.model.getId());
+                    }
+                }
+                invalidate();
+                return true;
+            }
             if (listener != null) {
                 listener.onMutationStarting();
             }
-            float designX = viewport.getTransform().screenToDesignX(event.getX());
-            float designY = viewport.getTransform().screenToDesignY(event.getY());
             ComponentModel created = dragController.dropNewComponent(
                     type.toString(), designX, designY);
             if (created != null) {

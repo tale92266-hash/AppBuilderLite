@@ -1,11 +1,23 @@
 package com.nobi.appbuilder.hierarchy;
 
+import com.nobi.appbuilder.clipboard.ClipboardData;
+import com.nobi.appbuilder.clipboard.PasteController;
 import com.nobi.appbuilder.components.ComponentFactory;
 import com.nobi.appbuilder.editor.CanvasState;
 import com.nobi.appbuilder.editor.ComponentHitTester;
+import com.nobi.appbuilder.history.CommandManager;
+import com.nobi.appbuilder.history.CommandTransaction;
+import com.nobi.appbuilder.history.DeleteComponentCommand;
+import com.nobi.appbuilder.history.DuplicateComponentCommand;
+import com.nobi.appbuilder.history.EditorCommand;
+import com.nobi.appbuilder.history.RenameComponentCommand;
+import com.nobi.appbuilder.history.ReorderComponentCommand;
+import com.nobi.appbuilder.history.ReparentComponentCommand;
+import com.nobi.appbuilder.history.UpdatePropertyCommand;
 import com.nobi.appbuilder.model.ComponentModel;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -26,6 +38,11 @@ public class ComponentTreeController {
         void onDocumentCommitted();
 
         void onTreeError(String message);
+
+        /** Phase 5: a hierarchy drag finished; build one reparent command. */
+        default void onReparentCommitted(ComponentModel model,
+                                         ComponentModel oldParent, int oldIndex) {
+        }
     }
 
     private final CanvasState state;
@@ -34,10 +51,20 @@ public class ComponentTreeController {
     private boolean multiSelectActive;
     private boolean batchMove;
     private String query = "";
+    /** Phase 5: when set, mutations run as commands through the activity. */
+    private CommandManager.CommandRunner commandRunner;
+    private final PasteController pasteController = new PasteController();
+    private ComponentModel batchModel;
+    private ComponentModel batchOldParent;
+    private int batchOldIndex = -1;
 
     public ComponentTreeController(CanvasState state, TreeListener listener) {
         this.state = state;
         this.listener = listener;
+    }
+
+    public void setCommandRunner(CommandManager.CommandRunner commandRunner) {
+        this.commandRunner = commandRunner;
     }
 
     public List<ComponentTreeNode> getFlatNodes() {
@@ -59,6 +86,12 @@ public class ComponentTreeController {
     public void endBatchMove() {
         if (batchMove) {
             batchMove = false;
+            if (batchModel != null && batchOldParent != null && batchOldIndex >= 0) {
+                listener.onReparentCommitted(batchModel, batchOldParent, batchOldIndex);
+            }
+            batchModel = null;
+            batchOldParent = null;
+            batchOldIndex = -1;
             listener.onTreeChanged();
             listener.onDocumentCommitted();
         }
@@ -138,6 +171,18 @@ public class ComponentTreeController {
         if (error != null) {
             return error;
         }
+        if (commandRunner != null) {
+            RenameComponentCommand command =
+                    new RenameComponentCommand(state.getRoot(), model, newId.trim());
+            if (!command.canExecute()) {
+                return command.getValidationError();
+            }
+            if (commandRunner.run(command)) {
+                state.select(newId.trim());
+                refresh();
+            }
+            return null;
+        }
         listener.onMutationStarting();
         model.setId(newId.trim());
         state.select(newId.trim());
@@ -150,6 +195,24 @@ public class ComponentTreeController {
     public void deleteSelected() {
         List<ComponentModel> selected = state.getSelectedModels();
         if (selected.isEmpty()) {
+            return;
+        }
+        if (commandRunner != null) {
+            CommandTransaction transaction =
+                    new CommandTransaction("Delete " + selected.size() + " components");
+            for (ComponentModel model : selected) {
+                if (!model.isLocked()) {
+                    transaction.add(new DeleteComponentCommand(state.getRoot(), model));
+                }
+            }
+            if (!transaction.isEmpty()) {
+                commandRunner.run(transaction);
+            }
+            state.clearSelection();
+            multiSelectActive = false;
+            refresh();
+            listener.onSelectionChanged();
+            listener.onTreeChanged();
             return;
         }
         listener.onMutationStarting();
@@ -180,6 +243,17 @@ public class ComponentTreeController {
         if (parent == null) {
             return;
         }
+        if (commandRunner != null) {
+            DuplicateComponentCommand command =
+                    new DuplicateComponentCommand(state.getRoot(), model);
+            if (commandRunner.run(command)) {
+                state.select(command.getCopy().getId());
+                refresh();
+                listener.onSelectionChanged();
+                listener.onTreeChanged();
+            }
+            return;
+        }
         listener.onMutationStarting();
         ComponentModel copy = ComponentFactory.cloneTree(model);
         copy.setX(model.getX() + 16);
@@ -200,6 +274,29 @@ public class ComponentTreeController {
         ComponentModel clipboard = state.getClipboard();
         if (clipboard == null || state.getRoot() == null) {
             listener.onTreeError("Nothing copied yet.");
+            return;
+        }
+        if (commandRunner != null) {
+            ClipboardData data = new ClipboardData(
+                    Collections.singletonList(clipboard), null);
+            PasteController.PasteResult result = pasteController.preparePaste(
+                    data, state.getRoot(), null, PasteController.PASTE_OFFSET_DP);
+            if (result.error != null || result.pasted.isEmpty()) {
+                listener.onTreeError(
+                        result.error == null ? "Could not paste here." : result.error);
+                return;
+            }
+            CommandTransaction transaction =
+                    new CommandTransaction("Paste " + result.pasted.size() + " components");
+            for (EditorCommand command : result.commands) {
+                transaction.add(command);
+            }
+            if (commandRunner.run(transaction)) {
+                state.select(result.pasted.get(result.pasted.size() - 1).getId());
+                refresh();
+                listener.onSelectionChanged();
+                listener.onTreeChanged();
+            }
             return;
         }
         ComponentModel parent = ComponentHitTester.findParent(state.getRoot(),
@@ -238,19 +335,50 @@ public class ComponentTreeController {
             return -1;
         }
         int fromIndex = oldParent.getChildren().indexOf(model);
-        if (!batchMove) {
+        if (batchMove) {
+            if (batchModel == null) {
+                batchModel = model;
+                batchOldParent = oldParent;
+                batchOldIndex = fromIndex;
+            }
+            oldParent.getChildren().remove(model);
+            int index = newIndex;
+            if (oldParent == newParent && fromIndex >= 0 && fromIndex < index) {
+                index--;
+            }
+            index = Math.max(0, Math.min(newParent.getChildren().size(), index));
+            newParent.getChildren().add(index, model);
+            state.setExpanded(newParent.getId(), true);
+            refresh();
+        } else if (commandRunner != null) {
+            int index = newIndex;
+            if (oldParent == newParent && fromIndex >= 0 && fromIndex < index) {
+                index--;
+            }
+            index = Math.max(0, Math.min(newParent.getChildren().size(), index));
+            ReparentComponentCommand command = new ReparentComponentCommand(
+                    state.getRoot(), model, newParent, index);
+            if (!command.canExecute()) {
+                listener.onTreeError("Could not move this component here.");
+                return -1;
+            }
+            if (!commandRunner.run(command)) {
+                return -1;
+            }
+            state.setExpanded(newParent.getId(), true);
+            refresh();
+            listener.onTreeChanged();
+        } else {
             listener.onMutationStarting();
-        }
-        oldParent.getChildren().remove(model);
-        int index = newIndex;
-        if (oldParent == newParent && fromIndex >= 0 && fromIndex < index) {
-            index--;
-        }
-        index = Math.max(0, Math.min(newParent.getChildren().size(), index));
-        newParent.getChildren().add(index, model);
-        state.setExpanded(newParent.getId(), true);
-        refresh();
-        if (!batchMove) {
+            oldParent.getChildren().remove(model);
+            int index = newIndex;
+            if (oldParent == newParent && fromIndex >= 0 && fromIndex < index) {
+                index--;
+            }
+            index = Math.max(0, Math.min(newParent.getChildren().size(), index));
+            newParent.getChildren().add(index, model);
+            state.setExpanded(newParent.getId(), true);
+            refresh();
             listener.onTreeChanged();
             listener.onDocumentCommitted();
         }
@@ -275,6 +403,14 @@ public class ComponentTreeController {
         if (error != null) {
             return;
         }
+        if (commandRunner != null) {
+            if (commandRunner.run(
+                    new ReorderComponentCommand(state.getRoot(), model, swap))) {
+                refresh();
+                listener.onTreeChanged();
+            }
+            return;
+        }
         listener.onMutationStarting();
         children.set(index, children.get(swap));
         children.set(swap, model);
@@ -284,6 +420,15 @@ public class ComponentTreeController {
     }
 
     public void setVisibility(ComponentModel model, boolean visible) {
+        if (commandRunner != null) {
+            String oldValue = model.getProperty("visibility", "visible");
+            String newValue = visible ? "visible" : "gone";
+            commandRunner.run(new UpdatePropertyCommand(
+                    model, state.getRoot(), "visibility", oldValue, newValue));
+            refresh();
+            listener.onTreeChanged();
+            return;
+        }
         listener.onMutationStarting();
         model.setProperty("visibility", visible ? "visible" : "gone");
         refresh();
@@ -292,6 +437,15 @@ public class ComponentTreeController {
     }
 
     public void setLocked(ComponentModel model, boolean locked) {
+        if (commandRunner != null) {
+            String oldValue = String.valueOf(model.isLocked());
+            String newValue = String.valueOf(locked);
+            commandRunner.run(new UpdatePropertyCommand(
+                    model, state.getRoot(), "locked", oldValue, newValue));
+            refresh();
+            listener.onTreeChanged();
+            return;
+        }
         listener.onMutationStarting();
         model.setLocked(locked);
         refresh();

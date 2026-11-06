@@ -23,6 +23,8 @@ public class ResizeController {
     private float startDesignX;
     private float startDesignY;
     private float startAspect;
+    /** Phase 5: the target's own x/y/w/h when the resize started. */
+    private final int[] startModel = new int[4];
 
     public ResizeController(CanvasState state) {
         this.state = state;
@@ -34,6 +36,21 @@ public class ResizeController {
 
     public int getActiveHandle() {
         return handle;
+    }
+
+    /** Phase 5: target of the in-progress resize, or null. */
+    public ComponentModel getTarget() {
+        return target;
+    }
+
+    /** Phase 5: bounds the target had when the resize started (copy). */
+    public RectF getStartBounds() {
+        return new RectF(startBounds);
+    }
+
+    /** Phase 5: the target's x/y/w/h when the resize started (copy). */
+    public int[] getStartModelBounds() {
+        return new int[]{startModel[0], startModel[1], startModel[2], startModel[3]};
     }
 
     public void beginResize(ComponentModel target, int handle,
@@ -52,6 +69,10 @@ public class ResizeController {
         this.target = target;
         this.handle = handle;
         startBounds.set(bounds);
+        startModel[0] = target.getX();
+        startModel[1] = target.getY();
+        startModel[2] = target.getWidth();
+        startModel[3] = target.getHeight();
         startDesignX = designX;
         startDesignY = designY;
         startAspect = bounds.width() > 0 ? bounds.width() / Math.max(1, bounds.height()) : 1;

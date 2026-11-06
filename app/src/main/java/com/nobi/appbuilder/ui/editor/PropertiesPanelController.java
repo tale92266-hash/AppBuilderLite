@@ -11,6 +11,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.nobi.appbuilder.R;
+import com.nobi.appbuilder.history.CommandManager;
+import com.nobi.appbuilder.history.CommandTransaction;
+import com.nobi.appbuilder.history.UpdatePropertyCommand;
 import com.nobi.appbuilder.model.ComponentModel;
 import com.nobi.appbuilder.properties.PropertyChangeListener;
 import com.nobi.appbuilder.properties.PropertyController;
@@ -63,6 +66,12 @@ public class PropertiesPanelController {
     private final List<Row> rows = new ArrayList<>();
     private ComponentModel currentModel;
     private ComponentModel root;
+    /** Phase 5: when set, property edits run as UpdatePropertyCommands. */
+    private CommandManager.CommandRunner commandRunner;
+
+    public void setCommandRunner(CommandManager.CommandRunner commandRunner) {
+        this.commandRunner = commandRunner;
+    }
 
     public PropertiesPanelController(View panel, RecyclerView recyclerView,
                                      TextView titleView, Button resetButton,
@@ -127,6 +136,32 @@ public class PropertiesPanelController {
         if (currentModel == null) {
             return;
         }
+        if (commandRunner != null) {
+            CommandTransaction transaction =
+                    new CommandTransaction("Reset properties");
+            for (PropertyDefinition definition :
+                    propertyController.getDefinitionsFor(currentModel, root)) {
+                if (!definition.isEditable()
+                        || "id".equals(definition.getKey())
+                        || "type".equals(definition.getKey())) {
+                    continue;
+                }
+                PropertyValue current =
+                        propertyController.getValue(currentModel, definition);
+                PropertyValue fallback = definition.getDefaultValue();
+                if (current == null || fallback == null || current.equals(fallback)) {
+                    continue;
+                }
+                transaction.add(new UpdatePropertyCommand(currentModel, root,
+                        definition, current, fallback));
+            }
+            if (!transaction.isEmpty()) {
+                commandRunner.run(transaction);
+            }
+            buildRows();
+            listener.onPropertyChanged();
+            return;
+        }
         listener.onPropertyChangeStarting();
         propertyController.resetToDefaults(currentModel, root);
         buildRows();
@@ -156,6 +191,21 @@ public class PropertiesPanelController {
                 PropertyValue initial =
                         propertyController.getValue(currentModel, definition);
                 PropertyController.ValueListener valueListener = newValue -> {
+                    if (commandRunner != null) {
+                        PropertyValue oldValue =
+                                propertyController.getValue(currentModel, definition);
+                        UpdatePropertyCommand command = new UpdatePropertyCommand(
+                                currentModel, root, definition, oldValue, newValue);
+                        if (!command.canExecute()) {
+                            showRowError(definition, command.getValidationError());
+                            refreshValues();
+                        } else {
+                            clearRowError(definition);
+                            commandRunner.run(command);
+                            listener.onPropertyChanged();
+                        }
+                        return;
+                    }
                     listener.onPropertyChangeStarting();
                     String error = propertyController.setValue(
                             currentModel, definition, newValue, root);

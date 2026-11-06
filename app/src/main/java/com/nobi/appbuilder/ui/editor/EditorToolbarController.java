@@ -20,6 +20,14 @@ public class EditorToolbarController {
         void onRedo();
 
         void onSave();
+
+        void onCopy();
+
+        void onPaste();
+
+        void onDuplicate();
+
+        void onScreens();
     }
 
     private final MaterialToolbar toolbar;
@@ -49,6 +57,22 @@ public class EditorToolbarController {
                 listener.onSave();
                 return true;
             }
+            if (id == R.id.action_copy) {
+                listener.onCopy();
+                return true;
+            }
+            if (id == R.id.action_paste) {
+                listener.onPaste();
+                return true;
+            }
+            if (id == R.id.action_duplicate) {
+                listener.onDuplicate();
+                return true;
+            }
+            if (id == R.id.action_screens) {
+                listener.onScreens();
+                return true;
+            }
             return false;
         });
     }
@@ -69,5 +93,31 @@ public class EditorToolbarController {
         if (item != null) {
             item.setEnabled(enabled);
         }
+    }
+
+    public void setCopyEnabled(boolean enabled) {
+        MenuItem item = toolbar.getMenu().findItem(R.id.action_copy);
+        if (item != null) {
+            item.setEnabled(enabled);
+        }
+    }
+
+    public void setPasteEnabled(boolean enabled) {
+        MenuItem item = toolbar.getMenu().findItem(R.id.action_paste);
+        if (item != null) {
+            item.setEnabled(enabled);
+        }
+    }
+
+    public void setDuplicateEnabled(boolean enabled) {
+        MenuItem item = toolbar.getMenu().findItem(R.id.action_duplicate);
+        if (item != null) {
+            item.setEnabled(enabled);
+        }
+    }
+
+    /** Save status shown as the toolbar subtitle (Phase 5 autosave). */
+    public void setSaveStatus(String status) {
+        toolbar.setSubtitle(status);
     }
 }

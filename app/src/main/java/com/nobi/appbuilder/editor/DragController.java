@@ -40,6 +40,20 @@ public class DragController {
         return dragging;
     }
 
+    /** Phase 5: models of the in-progress drag (copy). */
+    public List<ComponentModel> getDragModels() {
+        return new ArrayList<>(dragModels);
+    }
+
+    /** Phase 5: start positions of the in-progress drag (deep copy). */
+    public java.util.Map<String, float[]> getStartPositions() {
+        java.util.Map<String, float[]> copy = new java.util.HashMap<>();
+        for (java.util.Map.Entry<String, float[]> entry : startPositions.entrySet()) {
+            copy.put(entry.getKey(), new float[]{entry.getValue()[0], entry.getValue()[1]});
+        }
+        return copy;
+    }
+
     public List<AlignmentEngine.Guide> getCurrentGuides() {
         return currentGuides;
     }
@@ -104,8 +118,30 @@ public class DragController {
         return moved;
     }
 
+    /** A prepared library drop: the model and its parent, not yet inserted. */
+    public static class PreparedDrop {
+        public final ComponentModel model;
+        public final ComponentModel parent;
+
+        public PreparedDrop(ComponentModel model, ComponentModel parent) {
+            this.model = model;
+            this.parent = parent;
+        }
+    }
+
     /** Drops a new library component at a design point; returns it or null. */
     public ComponentModel dropNewComponent(String type, float designX, float designY) {
+        PreparedDrop prepared = prepareNewComponent(type, designX, designY);
+        if (prepared == null) {
+            return null;
+        }
+        prepared.parent.addChild(prepared.model);
+        return prepared.model;
+    }
+
+    /** Phase 5: builds the drop without inserting it, so the insert can
+     * be an AddComponentCommand. Returns null when the drop is invalid. */
+    public PreparedDrop prepareNewComponent(String type, float designX, float designY) {
         if (!ComponentRegistry.contains(type)) {
             return null;
         }
@@ -166,8 +202,7 @@ public class DragController {
                 y, parentDesign.top, Math.max(parentDesign.top, parentDesign.bottom - h));
         model.setX(Math.round(x));
         model.setY(Math.round(y));
-        parent.addChild(model);
-        return model;
+        return new PreparedDrop(model, parent);
     }
 
     private List<ComponentModel> topmostOnly(List<ComponentModel> models) {

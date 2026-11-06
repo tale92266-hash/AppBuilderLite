@@ -19,6 +19,29 @@
         android:title="@string/action_save"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/action_copy"
+        android:enabled="false"
+        android:icon="@drawable/ic_copy"
+        android:title="@string/action_copy"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_paste"
+        android:enabled="false"
+        android:icon="@drawable/ic_paste"
+        android:title="@string/action_paste"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_duplicate"
+        android:enabled="false"
+        android:icon="@drawable/ic_duplicate"
+        android:title="@string/action_duplicate"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_screens"
+        android:icon="@drawable/ic_screens"
+        android:title="@string/action_screens"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_preview"
         android:enabled="false"
         android:icon="@drawable/ic_preview"

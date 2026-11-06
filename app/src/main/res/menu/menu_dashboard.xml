@@ -11,4 +11,14 @@
         android:icon="@drawable/ic_settings"
         android:title="@string/settings"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/action_sort_recent"
+        android:checkable="true"
+        android:title="@string/action_sort_recent"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_sort_name"
+        android:checkable="true"
+        android:title="@string/action_sort_name"
+        app:showAsAction="never" />
 </menu>
