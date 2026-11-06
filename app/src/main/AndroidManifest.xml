@@ -165,6 +165,14 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- Receives the PackageInstaller session result (install
+             confirmation, success, failure) for ApkInstaller. The
+             broadcast comes from the app's own PendingIntent, so the
+             receiver stays non-exported. -->
+        <receiver
+            android:name=".build.apk.InstallResultReceiver"
+            android:exported="false" />
+
     </application>
 
 </manifest>
