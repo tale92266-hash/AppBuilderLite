@@ -16,6 +16,11 @@ public final class IDGenerator {
         return prefix + "_" + random;
     }
 
+    /** Generic id when the caller has no domain-specific prefix. */
+    public static String newId() {
+        return newId("id");
+    }
+
     public static String newProjectId() {
         return newId("proj");
     }
