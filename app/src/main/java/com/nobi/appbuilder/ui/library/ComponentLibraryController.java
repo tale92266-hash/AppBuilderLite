@@ -60,11 +60,12 @@ public class ComponentLibraryController {
                         listener.onToggleFavorite(item);
                     }
                 });
-        categoryAdapter = new ComponentCategoryAdapter(category -> {
+        ComponentCategoryAdapter adapter = new ComponentCategoryAdapter(category -> {
             filter.setCategory(category);
-            categoryAdapter.setSelected(category);
+            adapter.setSelected(category);
             refresh();
         });
+        categoryAdapter = adapter;
         RecyclerView categories =
                 root.findViewById(R.id.recycler_library_categories);
         categories.setLayoutManager(new LinearLayoutManager(
