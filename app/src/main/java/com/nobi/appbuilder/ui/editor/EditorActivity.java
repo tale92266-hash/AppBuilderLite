@@ -226,7 +226,7 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
                     screen.setRootComponent(root);
                 }
                 loaded = true;
-                toolbarController.setTitle(project.getName() + " — " + screen.getName());
+                toolbarController.setTitle(project.getAppName() + " — " + screen.getName());
                 canvasView.setScreen(screen, root);
                 hierarchyController.refresh();
                 updateSelectedInfo();
