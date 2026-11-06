@@ -26,21 +26,21 @@ public class TextPropertyEditor implements PropertyController.Editor {
     private final PropertyDefinition definition;
     private final PropertyController.ValueListener listener;
     private final Handler handler = new Handler(Looper.getMainLooper());
+    private final Runnable commitRunnable;
     private EditText editText;
     private String pendingText;
     private boolean suppressEvents;
-
-    private final Runnable commitRunnable = () -> {
-        if (editText != null && pendingText != null) {
-            listener.onValue(PropertyValue.ofString(pendingText));
-        }
-    };
 
     public TextPropertyEditor(PropertyDefinition definition, PropertyValue initialValue,
                               PropertyController.ValueListener listener) {
         this.definition = definition;
         this.listener = listener;
         this.pendingText = initialValue == null ? "" : initialValue.asString();
+        this.commitRunnable = () -> {
+            if (editText != null && pendingText != null) {
+                listener.onValue(PropertyValue.ofString(pendingText));
+            }
+        };
     }
 
     @Override
