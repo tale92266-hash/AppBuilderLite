@@ -196,7 +196,6 @@
 
     <!-- Phase 8: Android Studio export -->
     <string name="export_title">Export project</string>
-    <string name="action_export">Export project</string>
     <string name="export_project_name">Project name</string>
     <string name="export_app_name">Application name</string>
     <string name="export_package_name">Application ID / package</string>
