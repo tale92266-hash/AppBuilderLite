@@ -222,6 +222,60 @@ recreated or replaced.
   preserved in JSON and only Phase 7 generation decides what the app
   shows.
 
+## Phase 6 — Native Android Preview Engine (2026-11-06)
+
+Renders the JSON document as real native Android Views inside the
+app. The editor's Preview menu item is live since this phase.
+
+**Included**
+
+- `preview/` — `PreviewRenderer` (pre-assigns stable Android view
+  ids so ConstraintLayout targets resolve in any order, root fills
+  the device frame), `PreviewController` (loads the document off the
+  main thread, validates + renders on it, never writes back),
+  `PreviewSession` (project/screen, theme, device, orientation,
+  navigation history, temporary input values — never saved),
+  `PreviewContext` (session + theme + navigator + dispatcher +
+  component-id → View registry), `PreviewState` (zoom 50–200%,
+  frame on/off), `PreviewNavigator` (stable screen ids, history,
+  restart), `PreviewValidator` ("componentId: message" errors;
+  one bad component becomes a red placeholder, never a crash).
+- `preview/factory/` — `PreviewViewFactory` (real TextView,
+  MaterialButton, ImageView, EditText, Linear/Frame/ConstraintLayout,
+  ScrollView, CheckBox, Switch, ProgressBar, MaterialCardView),
+  `PreviewLayoutFactory` (Linear weight/gravity, Frame gravity,
+  ConstraintLayout constraints + bias, ScrollView child; dimensions
+  from LayoutModel strings first, model ints second),
+  `PreviewComponentFactory` (recursive build, per-component error
+  isolation, event wiring).
+- `preview/components/` — one real-property applier per type
+  (text/size/colour/gravity/lines, button tint + radius, image
+  scale types + rounded outline, hint/inputType, orientation,
+  fillViewport, checked, max/progress, card radius/elevation).
+  Images resolve from drawable resources, project assets or file
+  paths; large files decode downsampled on a background thread;
+  missing images get a clear placeholder.
+- `preview/theme/` — `PreviewThemeManager` (Light / Dark / project
+  theme; switching never overwrites component properties),
+  `PreviewColorResolver` (hex + theme tokens), `PreviewStyleResolver`
+  (background + radius/border, text, padding/alpha/visibility/
+  elevation, input types, scale types).
+- `preview/device/` — profiles Compact 360×800, Standard 393×873,
+  Large 412×915, Small tablet 600×960 dp + custom sizes;
+  `PreviewViewport` sizes the frame by profile × orientation × zoom.
+- `preview/events/` — `PreviewEventDispatcher` (click, long click,
+  text-changed) and `PreviewActionExecutor` (only the predefined
+  actions: toast, navigate, changeText, validateInput, finish,
+  changeVisibility — never arbitrary code). Navigation uses stable
+  screen ids; a missing destination toasts instead of crashing.
+- `ui/preview/` — `PreviewActivity` (top toolbar: back, screen
+  name, restart, theme, close; bottom toolbar: device, orientation,
+  zoom; first-render error dialog, later renders toast the count;
+  state survives rotation; closing returns to the editor with its
+  selection and zoom intact), `PreviewToolbarController`,
+  `DeviceFrameView` (optional rounded phone border),
+  `DeviceSelectorDialog` (profiles + custom size + frame switch).
+
 ## Signing
 
 Every debug APK is signed with one fixed key (keystore

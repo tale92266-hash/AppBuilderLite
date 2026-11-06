@@ -7,8 +7,7 @@ import com.nobi.appbuilder.R;
 
 /**
  * Owns the editor top toolbar: back navigation, title, and the
- * undo / redo / save / preview menu. Preview is Phase 6, so its item
- * stays visibly disabled until then.
+ * undo / redo / save / preview menu. Preview is live since Phase 6.
  */
 public class EditorToolbarController {
 
@@ -28,6 +27,8 @@ public class EditorToolbarController {
         void onDuplicate();
 
         void onScreens();
+
+        void onPreview();
     }
 
     private final MaterialToolbar toolbar;
@@ -39,10 +40,6 @@ public class EditorToolbarController {
         toolbar.setNavigationIcon(R.drawable.ic_arrow_back);
         toolbar.setNavigationOnClickListener(v -> listener.onBack());
         toolbar.inflateMenu(R.menu.menu_editor);
-        MenuItem preview = toolbar.getMenu().findItem(R.id.action_preview);
-        if (preview != null) {
-            preview.setEnabled(false);
-        }
         toolbar.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
             if (id == R.id.action_undo) {
@@ -71,6 +68,10 @@ public class EditorToolbarController {
             }
             if (id == R.id.action_screens) {
                 listener.onScreens();
+                return true;
+            }
+            if (id == R.id.action_preview) {
+                listener.onPreview();
                 return true;
             }
             return false;

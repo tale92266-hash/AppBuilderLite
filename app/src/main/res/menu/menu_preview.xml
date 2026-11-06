@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_restart"
+        android:icon="@drawable/ic_restart"
+        android:title="@string/action_restart"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_theme"
+        android:icon="@drawable/ic_theme"
+        android:title="@string/action_theme"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_close"
+        android:icon="@drawable/ic_close"
+        android:title="@string/action_close"
+        app:showAsAction="never" />
+</menu>

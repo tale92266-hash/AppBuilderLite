@@ -153,4 +153,29 @@
     <string name="save_status_unsaved">Unsaved changes</string>
     <string name="save_status_failed">Save failed</string>
     <string name="msg_group_type">Group into</string>
+
+    <!-- Phase 6: live preview -->
+    <string name="preview_loading">Loading preview…</string>
+    <string name="preview_load_failed">Could not load the project for preview</string>
+    <string name="preview_errors_title">Preview issues</string>
+    <string name="preview_issues">Preview: %1$d issues</string>
+    <string name="preview_screen_not_found">Screen not found</string>
+    <string name="preview_enter_value">Please enter a value</string>
+    <string name="preview_valid">Valid</string>
+    <string name="preview_device">Device</string>
+    <string name="preview_orientation_portrait">Portrait</string>
+    <string name="preview_orientation_landscape">Landscape</string>
+    <string name="preview_zoom">%1$d%%</string>
+    <string name="preview_zoom_in">Zoom in</string>
+    <string name="preview_zoom_out">Zoom out</string>
+    <string name="preview_show_frame">Show device frame</string>
+    <string name="action_restart">Restart</string>
+    <string name="action_theme">Theme</string>
+    <string name="action_close">Close</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_project">Project theme</string>
+    <string name="device_custom">Custom size</string>
+    <string name="device_custom_width">Width (dp)</string>
+    <string name="device_custom_height">Height (dp)</string>
 </resources>

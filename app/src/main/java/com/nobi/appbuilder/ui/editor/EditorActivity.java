@@ -54,6 +54,7 @@ import com.nobi.appbuilder.model.ScreenModel;
 import com.nobi.appbuilder.repository.DocumentRepository;
 import com.nobi.appbuilder.screens.ScreenManager;
 import com.nobi.appbuilder.screens.ScreenNavigator;
+import com.nobi.appbuilder.ui.preview.PreviewActivity;
 import com.nobi.appbuilder.selection.GroupSelectionController;
 import com.nobi.appbuilder.selection.MultiSelectionManager;
 
@@ -257,6 +258,11 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
                     @Override
                     public void onScreens() {
                         showScreensDialog();
+                    }
+
+                    @Override
+                    public void onPreview() {
+                        openPreview();
                     }
                 });
 
@@ -1086,6 +1092,20 @@ public class EditorActivity extends AppCompatActivity implements EditorInteracti
     // ------------------------------------------------------------------
     // Screens (Phase 5)
     // ------------------------------------------------------------------
+
+    /** Opens the live preview (Phase 6). Pending autosave is flushed
+     * first so the preview shows the latest edits; the editor stays
+     * alive underneath, so Back returns with selection and zoom intact. */
+    private void openPreview() {
+        if (!loaded || document == null || screen == null || project == null) {
+            return;
+        }
+        autosaveManager.flush();
+        Intent intent = new Intent(this, PreviewActivity.class);
+        intent.putExtra(PreviewActivity.EXTRA_PROJECT_ID, project.getId());
+        intent.putExtra(PreviewActivity.EXTRA_SCREEN_ID, screen.getId());
+        startActivity(intent);
+    }
 
     private void showScreensDialog() {
         if (project == null) {
