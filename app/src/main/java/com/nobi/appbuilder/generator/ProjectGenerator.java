@@ -140,12 +140,10 @@ public class ProjectGenerator {
     }
 
     private void finishWithProblems(GenerationResult result) {
+        // GenerationReport.addError routes warnings itself via
+        // isError(), so one call handles both severities.
         for (GenerationError problem : context.getProblems()) {
-            if (problem.getSeverity() == GenerationError.SEVERITY_ERROR) {
-                result.getReport().addError(problem);
-            } else {
-                result.getReport().addWarning(problem);
-            }
+            result.getReport().addError(problem);
         }
     }
 

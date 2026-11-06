@@ -2,7 +2,6 @@ package com.nobi.appbuilder.generator.resources;
 
 import com.nobi.appbuilder.database.AssetRepository;
 import com.nobi.appbuilder.generator.GenerationContext;
-import com.nobi.appbuilder.generator.xml.XMLIdResolver;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -53,8 +52,8 @@ public class AssetGenerator {
                 continue;
             }
             String ext = extensionOf(asset.name);
-            String base = XMLIdResolver.sanitizeResourceName(
-                    baseNameOf(asset.name));
+            String base = GenerationContext.ResourceCollector
+                    .sanitizeResourceName(baseNameOf(asset.name));
             String path;
             if (isImageExt(ext)) {
                 path = "app/src/main/res/drawable/" + base + "." + ext;
