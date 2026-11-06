@@ -148,8 +148,13 @@ public class PropertiesPanelController {
                 }
                 PropertyValue current =
                         propertyController.getValue(currentModel, definition);
-                PropertyValue fallback = definition.getDefaultValue();
-                if (current == null || fallback == null || current.equals(fallback)) {
+                String defaultRaw = definition.getDefaultValue();
+                if (defaultRaw == null) {
+                    continue;
+                }
+                PropertyValue fallback =
+                        PropertyValue.of(definition.getType(), defaultRaw);
+                if (current == null || current.equals(fallback)) {
                     continue;
                 }
                 transaction.add(new UpdatePropertyCommand(currentModel, root,

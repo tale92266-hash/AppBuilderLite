@@ -138,7 +138,7 @@ public class GroupComponentsCommand implements EditorCommand {
     public void undo() {
         container.getChildren().clear();
         parent.getChildren().remove(container);
-        List<int[]> indices = new ArrayList<>(originalIndices);
+        List<Integer> indices = new ArrayList<>(originalIndices);
         List<ComponentModel> ordered = new ArrayList<>(models);
         for (int i = 0; i < ordered.size() - 1; i++) {
             for (int j = i + 1; j < ordered.size(); j++) {
