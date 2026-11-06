@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/layout_code_editor_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <include
+        android:id="@+id/layout_code_toolbar"
+        layout="@layout/layout_code_toolbar" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+
+        <include
+            android:id="@+id/layout_code_explorer"
+            layout="@layout/layout_code_file_explorer"
+            android:layout_width="200dp"
+            android:layout_height="match_parent" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <include
+                android:id="@+id/layout_code_tabs"
+                layout="@layout/layout_code_editor_tabs" />
+
+            <com.nobi.appbuilder.codeeditor.CodeEditorView
+                android:id="@+id/editor_code_view"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:background="@android:color/white"
+                android:gravity="top|start"
+                android:inputType="textMultiLine|textNoSuggestions"
+                android:padding="8dp"
+                android:scrollbars="vertical|horizontal"
+                android:textSize="14sp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_code_completion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxHeight="160dp"
+                android:visibility="gone" />
+
+            <include
+                android:id="@+id/layout_code_search"
+                layout="@layout/layout_code_search"
+                android:visibility="gone" />
+
+            <include
+                android:id="@+id/layout_code_bottom"
+                layout="@layout/layout_code_bottom_panel" />
+
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
