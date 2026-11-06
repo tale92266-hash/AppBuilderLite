@@ -178,4 +178,19 @@
     <string name="device_custom">Custom size</string>
     <string name="device_custom_width">Width (dp)</string>
     <string name="device_custom_height">Height (dp)</string>
+    <string name="action_view_code">View code</string>
+    <string name="code_studio_title">Code Studio</string>
+    <string name="code_generating">Generating code…</string>
+    <string name="code_load_failed">Project could not be loaded</string>
+    <string name="code_files_count">%1$d files · %2$d screens · %3$d components</string>
+    <string name="code_generation_failed">Generation finished with %1$d errors</string>
+    <string name="code_generation_failed_title">Generation report</string>
+    <string name="code_binary_file">Binary file — open it from the exported project</string>
+    <string name="code_search">Search</string>
+    <string name="code_search_hint">Search in file</string>
+    <string name="code_search_next">Next match</string>
+    <string name="code_no_results">No matches</string>
+    <string name="code_refresh">Refresh</string>
+    <string name="code_copy">Copy code</string>
+    <string name="code_copied">Code copied</string>
 </resources>

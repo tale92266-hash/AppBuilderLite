@@ -29,6 +29,8 @@ public class EditorToolbarController {
         void onScreens();
 
         void onPreview();
+
+        void onCode();
     }
 
     private final MaterialToolbar toolbar;
@@ -72,6 +74,10 @@ public class EditorToolbarController {
             }
             if (id == R.id.action_preview) {
                 listener.onPreview();
+                return true;
+            }
+            if (id == R.id.action_code) {
+                listener.onCode();
                 return true;
             }
             return false;

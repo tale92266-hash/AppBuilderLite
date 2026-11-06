@@ -226,6 +226,9 @@ recreated or replaced.
 
 Renders the JSON document as real native Android Views inside the
 app. The editor's Preview menu item is live since this phase.
+(Fix in Phase 7: the menu item was still `android:enabled="false"`
+in `menu_editor.xml` and nothing ever enabled it, so Preview was
+unreachable in the Phase 6 build — the attribute was removed.)
 
 **Included**
 
@@ -275,6 +278,79 @@ app. The editor's Preview menu item is live since this phase.
   selection and zoom intact), `PreviewToolbarController`,
   `DeviceFrameView` (optional rounded phone border),
   `DeviceSelectorDialog` (profiles + custom size + frame switch).
+
+## Phase 7 — XML & Java Code Generation Engine (2026-11-06)
+
+Converts the JSON IR into a complete native Android project
+(layouts, Java Activities, resources, manifest, Gradle config).
+JSON stays the single source of truth.
+
+**Included**
+
+- `generator/` — `ProjectGenerator` (pipeline: validate IR →
+  validate events → XML layouts → Java Activities → resources →
+  manifest → Gradle → cross-reference validation → report; a run
+  with errors is never reported as success), `GenerationContext`
+  (document, package/SDK/version settings, screen→class/layout
+  maps, shared ResourceCollector, id map, problem list),
+  `GenerationResult` / `GenerationReport` / `GenerationError`.
+- `generator/xml/` — `XMLGenerator` (one layout per screen, root
+  carries the android/app namespaces, output re-parsed by
+  `XMLValidator` before acceptance), `LayoutXMLGenerator`
+  (Linear weight/gravity, Frame gravity, ConstraintLayout
+  constraints + bias, ScrollView single child; dimensions from
+  LayoutModel strings first), `XMLDocumentWriter` (structured
+  writer — no unsafe string concatenation), `XMLAttributeMapper`
+  (properties → XML attributes; text/hint → @string, textColor →
+  @color, textSize → @dimen; cornerRadius/border → per-component
+  shape drawable; unmapped properties are reported, never silently
+  dropped), `XMLIdResolver` (unique ids, Activity class names,
+  field names).
+- `generator/java/` — `JavaGenerator` + `ActivityGenerator`
+  (deterministic `ActivityTemplate`: imports, fields, findViewById
+  bindings only for components with events, listeners),
+  `ViewBindingGenerator`, `EventCodeGenerator` (only the predefined
+  actions: toast, navigate, changeText, validateInput, finish,
+  changeVisibility, openUrl, setEnabled — templates with escaped
+  literals, never compiled code from the document),
+  `NavigationCodeGenerator` (explicit Intents by stable screen id),
+  `JavaSourceValidator` (brace/paren balance, package + class
+  match, every R.id.* / R.layout.* resolves).
+- `generator/resources/` — `ResourceGenerator` (runs after layouts,
+  the collector is full by then): `ColorsGenerator`,
+  `StringsGenerator` (app_name + extracted strings),
+  `DimensionsGenerator`, `StylesGenerator` (themes.xml from the
+  project ThemeModel), `DrawableGenerator` (per-component shapes +
+  bg_button/bg_card defaults), `AssetGenerator` (images →
+  res/drawable, other files → assets/, formats preserved).
+- `generator/mapping/` — `ComponentMappingRegistry` (XML tag +
+  Java class + import per type), `PropertyMappingRegistry`
+  (attribute mapping + value conversion: dp/sp, inputType,
+  scaleType, fontWeight, visibility, elevation), `EventMappingRegistry`
+  (supported triggers/actions + validation: toast needs a message,
+  navigate needs an existing target, openUrl needs http(s)).
+- `generator/manifest/` — `ManifestGenerator` (one activity per
+  screen, launcher exported with MAIN/LAUNCHER, INTERNET only when
+  an openUrl event exists, landscape orientation only for landscape
+  screens).
+- `generator/gradle/` — `GradleGenerator` (settings + root +
+  app build.gradle, gradle.properties, wrapper properties; pinned
+  to AGP 8.9.2 / Gradle 8.11.1 / compileSdk 35 — the same combo this
+  project builds with; the wrapper JAR itself cannot be generated,
+  the report warns to run `gradle wrapper` once).
+- `generator/templates/` — `ProjectTemplate` (version constants),
+  `ActivityTemplate`, `ResourceTemplate` (themes + shape XML).
+- `ui/code/` — `CodeStudioActivity` (file explorer on top,
+  read-only source viewer below; refresh, copy, in-file search),
+  `CodePreviewFragment` (monospace view, regex syntax highlighting
+  for Java/XML/Gradle, search with next-match scrolling),
+  `CodeFileAdapter` (directory headers + file rows with a red dot
+  on files the report flags), `CodeGenerationController` (runs the
+  generator off the main thread; settings from
+  ProjectSettingsManager). Entry point: editor menu → View code.
+- Phase 6 fix included: Preview menu item was still disabled by a
+  leftover `android:enabled="false"` in `menu_editor.xml` — removed,
+  so Preview is actually reachable now.
 
 ## Signing
 

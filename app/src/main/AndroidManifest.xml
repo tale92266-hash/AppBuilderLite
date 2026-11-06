@@ -35,6 +35,12 @@
             android:label="@string/action_preview"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".ui.code.CodeStudioActivity"
+            android:exported="false"
+            android:label="@string/code_studio_title"
+            android:windowSoftInputMode="adjustResize" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="com.nobi.appbuilder.fileprovider"
