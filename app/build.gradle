@@ -14,6 +14,22 @@ android {
         versionName = "1.0.0-phase1"
     }
 
+    // Fixed signing key: when the CI workflow restores the keystore from
+    // the APPBUILDER_KEYSTORE_* secrets, every debug APK is signed with
+    // the same key and installs over previous builds. Without those env
+    // vars (local / ACS builds) the default debug key is used untouched.
+    signingConfigs {
+        debug {
+            def keystoreFile = System.getenv("APPBUILDER_KEYSTORE_FILE")
+            if (keystoreFile != null && new File(keystoreFile).length() > 0) {
+                storeFile file(keystoreFile)
+                storePassword System.getenv("APPBUILDER_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("APPBUILDER_KEY_ALIAS")
+                keyPassword System.getenv("APPBUILDER_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled = false
