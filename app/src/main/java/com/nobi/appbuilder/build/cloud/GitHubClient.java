@@ -1,6 +1,7 @@
 package com.nobi.appbuilder.build.cloud;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
@@ -21,6 +22,11 @@ import java.util.Base64;
  * call throws IOException with the HTTP status and the server's
  * message; a 404 is returned as null where the caller expects
  * "not found" instead of a failure.
+ *
+ * Note: Android's org.json.JSONException is a CHECKED exception
+ * (unlike Maven's org.json, where it is unchecked), so every JSON
+ * operation below is wrapped into IOException — the client's only
+ * failure type.
  */
 public class GitHubClient {
 
@@ -36,38 +42,51 @@ public class GitHubClient {
 
     /** The login of the token owner, or throws when invalid. */
     public String getUserLogin() throws IOException {
-        JSONObject user = new JSONObject(get("/user"));
-        return user.getString("login");
+        try {
+            JSONObject user = new JSONObject(get("/user"));
+            return user.getString("login");
+        } catch (JSONException e) {
+            throw new IOException("Invalid GitHub response", e);
+        }
     }
 
     /** Creates the private build repo (auto-initialised), or null
      * when it already exists (422 name already exists). */
     public JSONObject createRepo(String name) throws IOException {
-        JSONObject body = new JSONObject();
-        body.put("name", name);
-        body.put("private", true);
-        body.put("auto_init", true);
-        body.put("description",
-                "AppBuilder Lite cloud builds — project ZIPs built by "
-                        + "GitHub Actions. Created by the app.");
         try {
-            return new JSONObject(post("/user/repos", body.toString()));
-        } catch (HttpException e) {
-            if (e.status == 422) {
-                return null;
+            JSONObject body = new JSONObject();
+            body.put("name", name);
+            body.put("private", true);
+            body.put("auto_init", true);
+            body.put("description",
+                    "AppBuilder Lite cloud builds — project ZIPs built by "
+                            + "GitHub Actions. Created by the app.");
+            try {
+                return new JSONObject(post("/user/repos", body.toString()));
+            } catch (HttpException e) {
+                if (e.status == 422) {
+                    return null;
+                }
+                throw e;
             }
-            throw e;
+        } catch (JSONException e) {
+            throw new IOException("Invalid GitHub response", e);
         }
     }
 
     public JSONObject getRepo(String owner, String repo) throws IOException {
-        String out = getOrNull("/repos/" + owner + "/" + repo);
-        return out == null ? null : new JSONObject(out);
+        try {
+            String out = getOrNull("/repos/" + owner + "/" + repo);
+            return out == null ? null : new JSONObject(out);
+        } catch (JSONException e) {
+            throw new IOException("Invalid GitHub response", e);
+        }
     }
 
     /** Default branch of a repo ("main" when unknown). */
     public String defaultBranch(String owner, String repo)
             throws IOException {
+        // optString never throws; getRepo only throws IOException.
         JSONObject found = getRepo(owner, repo);
         if (found == null) {
             return "main";
@@ -78,12 +97,16 @@ public class GitHubClient {
     /** SHA of a file in the repo, or null when it does not exist. */
     public String getFileSha(String owner, String repo, String path)
             throws IOException {
-        String out = getOrNull("/repos/" + owner + "/" + repo
-                + "/contents/" + path);
-        if (out == null) {
-            return null;
+        try {
+            String out = getOrNull("/repos/" + owner + "/" + repo
+                    + "/contents/" + path);
+            if (out == null) {
+                return null;
+            }
+            return new JSONObject(out).optString("sha", null);
+        } catch (JSONException e) {
+            throw new IOException("Invalid GitHub response", e);
         }
-        return new JSONObject(out).optString("sha", null);
     }
 
     /**
@@ -93,62 +116,82 @@ public class GitHubClient {
     public String putFile(String owner, String repo, String path,
                           byte[] content, String message)
             throws IOException {
-        String sha = getFileSha(owner, repo, path);
-        JSONObject body = new JSONObject();
-        body.put("message", message);
-        body.put("content",
-                Base64.getEncoder().encodeToString(content));
-        if (sha != null) {
-            body.put("sha", sha);
+        try {
+            String sha = getFileSha(owner, repo, path);
+            JSONObject body = new JSONObject();
+            body.put("message", message);
+            body.put("content",
+                    Base64.getEncoder().encodeToString(content));
+            if (sha != null) {
+                body.put("sha", sha);
+            }
+            JSONObject out = new JSONObject(put(
+                    "/repos/" + owner + "/" + repo + "/contents/" + path,
+                    body.toString()));
+            return out.getJSONObject("commit").getString("sha");
+        } catch (JSONException e) {
+            throw new IOException("Invalid GitHub response", e);
         }
-        JSONObject out = new JSONObject(put(
-                "/repos/" + owner + "/" + repo + "/contents/" + path,
-                body.toString()));
-        return out.getJSONObject("commit").getString("sha");
     }
 
     /** Triggers a workflow_dispatch run on the given branch. */
     public void dispatchWorkflow(String owner, String repo,
                                  String workflowFile, String ref)
             throws IOException {
-        JSONObject body = new JSONObject();
-        body.put("ref", ref);
-        post("/repos/" + owner + "/" + repo + "/actions/workflows/"
-                + workflowFile + "/dispatches", body.toString());
+        try {
+            JSONObject body = new JSONObject();
+            body.put("ref", ref);
+            post("/repos/" + owner + "/" + repo + "/actions/workflows/"
+                    + workflowFile + "/dispatches", body.toString());
+        } catch (JSONException e) {
+            throw new IOException("Invalid GitHub response", e);
+        }
     }
 
     /** Latest run of a workflow with this head SHA, or null. */
     public JSONObject findRunByHeadSha(String owner, String repo,
                                        String workflowFile, String headSha)
             throws IOException {
-        JSONObject runs = new JSONObject(get(
-                "/repos/" + owner + "/" + repo + "/actions/workflows/"
-                        + workflowFile + "/runs?per_page=10"));
-        JSONArray list = runs.optJSONArray("workflow_runs");
-        if (list == null) {
-            return null;
-        }
-        for (int i = 0; i < list.length(); i++) {
-            JSONObject run = list.getJSONObject(i);
-            if (headSha.equals(run.optString("head_sha"))) {
-                return run;
+        try {
+            JSONObject runs = new JSONObject(get(
+                    "/repos/" + owner + "/" + repo + "/actions/workflows/"
+                            + workflowFile + "/runs?per_page=10"));
+            JSONArray list = runs.optJSONArray("workflow_runs");
+            if (list == null) {
+                return null;
             }
+            for (int i = 0; i < list.length(); i++) {
+                JSONObject run = list.getJSONObject(i);
+                if (headSha.equals(run.optString("head_sha"))) {
+                    return run;
+                }
+            }
+            return null;
+        } catch (JSONException e) {
+            throw new IOException("Invalid GitHub response", e);
         }
-        return null;
     }
 
     public JSONObject getRun(String owner, String repo, long runId)
             throws IOException {
-        return new JSONObject(get(
-                "/repos/" + owner + "/" + repo + "/actions/runs/" + runId));
+        try {
+            return new JSONObject(get(
+                    "/repos/" + owner + "/" + repo + "/actions/runs/" + runId));
+        } catch (JSONException e) {
+            throw new IOException("Invalid GitHub response", e);
+        }
     }
 
     public JSONArray listArtifacts(String owner, String repo, long runId)
             throws IOException {
-        JSONObject out = new JSONObject(get(
-                "/repos/" + owner + "/" + repo + "/actions/runs/" + runId
-                        + "/artifacts?per_page=10"));
-        return out.optJSONArray("artifacts");
+        try {
+            JSONObject out = new JSONObject(get(
+                    "/repos/" + owner + "/" + repo + "/actions/runs/" + runId
+                            + "/artifacts?per_page=10"));
+            return out.optJSONArray("artifacts");
+        } catch (JSONException e) {
+            throw new IOException("Invalid GitHub response", e);
+        }
     }
 
     /** Downloads a URL (follows the artifact redirect) to a file. */

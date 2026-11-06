@@ -3,9 +3,14 @@ package com.nobi.appbuilder.build.cloud;
 /**
  * The GitHub Actions workflow the app installs into the user's
  * private build repo. It is the same shape as AppBuilder Lite's
- * own build workflow (JDK 17, Android SDK, Gradle wrapper from the
- * exported project) — only the project comes from the uploaded
- * project.zip instead of the repo itself. The debug keystore is a
+ * own build workflow (JDK 17, the runner's preinstalled Android
+ * SDK, Gradle wrapper from the exported project) — only the
+ * project comes from the uploaded project.zip instead of the repo
+ * itself. No android-actions/setup-android step: it installs the
+ * obsolete "tools" package, which no longer exists in the SDK
+ * repository ("Failed to find package 'tools'", exit 1) — the
+ * runner's own sdkmanager installs exactly platform-35 +
+ * build-tools 35.0.0 instead. The debug keystore is a
  * FIXED debug key (assets/cloud/cloud-debug.keystore, conventional
  * "android" passwords), committed to the private repo so every
  * cloud APK is signed with the same key and installs over the
@@ -48,8 +53,14 @@ public final class CloudBuildWorkflow {
                 + "          distribution: temurin\n"
                 + "          java-version: \"17\"\n"
                 + "\n"
-                + "      - name: Set up Android SDK\n"
-                + "        uses: android-actions/setup-android@v3\n"
+                + "      - name: Install Android SDK packages\n"
+                + "        run: |\n"
+                + "          SDK=\"${ANDROID_HOME:-/usr/local/lib/android/sdk}\"\n"
+                + "          yes | \"$SDK/cmdline-tools/latest/bin/sdkmanager\""
+                + " --licenses\n"
+                + "          \"$SDK/cmdline-tools/latest/bin/sdkmanager\""
+                + " \"platforms;android-35\" \"build-tools;35.0.0\""
+                + " \"platform-tools\"\n"
                 + "\n"
                 + "      - name: Unzip project\n"
                 + "        run: unzip -o project.zip -d project\n"
