@@ -1,5 +1,7 @@
 package com.nobi.appbuilder.sync.parser;
 
+import com.nobi.appbuilder.utils.SecureXml;
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -12,7 +14,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 
 /**
  * Parses a layout XML file into a small element tree. Tolerates
@@ -36,13 +37,7 @@ public class XMLLayoutParser {
 
     public XMLParseResult parseText(String xml) {
         try {
-            DocumentBuilderFactory factory =
-                    DocumentBuilderFactory.newInstance();
-            factory.setFeature(
-                    "http://apache.org/xml/features/disallow-doctype-decl",
-                    true);
-            factory.setNamespaceAware(true);
-            DocumentBuilder builder = factory.newDocumentBuilder();
+            DocumentBuilder builder = SecureXml.newBuilder();
             Document document = builder.parse(new ByteArrayInputStream(
                     xml.getBytes(StandardCharsets.UTF_8)));
             Element root = document.getDocumentElement();

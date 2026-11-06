@@ -153,6 +153,14 @@ public class ProjectPackagingManager {
                 report.addError(PackagingError.warning("package", null,
                         problem));
             }
+            // The generator warns the wrapper jar is not generated, but
+            // the packager just copied the genuine jar from app assets —
+            // when the file is really there, the warning is stale.
+            if (new java.io.File(workspace,
+                    "gradle/wrapper/gradle-wrapper.jar").exists()) {
+                report.removeWarningsContaining(
+                        "gradle-wrapper.jar is not generated");
+            }
 
             stage(4);
             stage(5);

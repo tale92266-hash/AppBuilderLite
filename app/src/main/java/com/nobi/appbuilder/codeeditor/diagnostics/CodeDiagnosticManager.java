@@ -1,6 +1,7 @@
 package com.nobi.appbuilder.codeeditor.diagnostics;
 
 import com.nobi.appbuilder.codeeditor.EditorDocument;
+import com.nobi.appbuilder.utils.SecureXml;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -9,8 +10,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.xml.parsers.DocumentBuilderFactory;
 
 /**
  * Lightweight source diagnostics: malformed XML, missing closing
@@ -46,13 +45,7 @@ public class CodeDiagnosticManager {
     private List<CodeDiagnostic> diagnoseXml(File file, String text) {
         List<CodeDiagnostic> out = new ArrayList<>();
         try {
-            DocumentBuilderFactory factory =
-                    DocumentBuilderFactory.newInstance();
-            factory.setFeature(
-                    "http://apache.org/xml/features/disallow-doctype-decl",
-                    true);
-            factory.setNamespaceAware(true);
-            factory.newDocumentBuilder().parse(
+            SecureXml.newBuilder().parse(
                     new java.io.ByteArrayInputStream(
                             text.getBytes(
                                     java.nio.charset.StandardCharsets.UTF_8)));

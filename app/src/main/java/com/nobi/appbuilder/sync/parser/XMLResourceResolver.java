@@ -1,5 +1,7 @@
 package com.nobi.appbuilder.sync.parser;
 
+import com.nobi.appbuilder.utils.SecureXml;
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -9,7 +11,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 
 /**
  * Resolves @string/@color/@dimen/@drawable references against the
@@ -38,12 +39,7 @@ public class XMLResourceResolver {
             return;
         }
         try {
-            DocumentBuilderFactory factory =
-                    DocumentBuilderFactory.newInstance();
-            factory.setFeature(
-                    "http://apache.org/xml/features/disallow-doctype-decl",
-                    true);
-            DocumentBuilder builder = factory.newDocumentBuilder();
+            DocumentBuilder builder = SecureXml.newBuilder();
             Document document = builder.parse(file);
             NodeList nodes = document.getElementsByTagName(tag);
             for (int i = 0; i < nodes.getLength(); i++) {

@@ -43,6 +43,22 @@ public class PackagingReport {
         return new ArrayList<>(warnings);
     }
 
+    /**
+     * Drops warnings whose message contains the given text. Used for
+     * warnings that a later stage proves wrong — e.g. the generator
+     * warns the wrapper jar is not generated, but the packager then
+     * copies the genuine jar from app assets, so the warning must
+     * not survive into the final report.
+     */
+    public void removeWarningsContaining(String text) {
+        for (int i = warnings.size() - 1; i >= 0; i--) {
+            String message = warnings.get(i).getMessage();
+            if (message != null && message.contains(text)) {
+                warnings.remove(i);
+            }
+        }
+    }
+
     public List<PackagingError> getAllProblems() {
         List<PackagingError> all = new ArrayList<>(errors);
         all.addAll(warnings);

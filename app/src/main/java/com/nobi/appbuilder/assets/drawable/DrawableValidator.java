@@ -1,11 +1,11 @@
 package com.nobi.appbuilder.assets.drawable;
 
+import com.nobi.appbuilder.utils.SecureXml;
+
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.xml.parsers.DocumentBuilderFactory;
 
 /** Validates generated drawable XML: well-formed + right root tag. */
 public final class DrawableValidator {
@@ -20,11 +20,7 @@ public final class DrawableValidator {
             return errors;
         }
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setFeature(
-                    "http://apache.org/xml/features/disallow-doctype-decl", true);
-            factory.setNamespaceAware(true);
-            org.w3c.dom.Document document = factory.newDocumentBuilder().parse(
+            org.w3c.dom.Document document = SecureXml.newBuilder().parse(
                     new ByteArrayInputStream(
                             xml.getBytes(StandardCharsets.UTF_8)));
             String root = document.getDocumentElement().getTagName();

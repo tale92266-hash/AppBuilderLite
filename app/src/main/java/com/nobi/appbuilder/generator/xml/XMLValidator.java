@@ -1,5 +1,7 @@
 package com.nobi.appbuilder.generator.xml;
 
+import com.nobi.appbuilder.utils.SecureXml;
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -11,7 +13,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 
 /**
  * Validates generated XML the hard way: a real namespace-aware
@@ -26,11 +27,7 @@ public final class XMLValidator {
     /** Parses the XML; returns null when valid, else the error. */
     public static String parse(String xml) {
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setNamespaceAware(true);
-            factory.setFeature(
-                    "http://apache.org/xml/features/disallow-doctype-decl", true);
-            DocumentBuilder builder = factory.newDocumentBuilder();
+            DocumentBuilder builder = SecureXml.newBuilder();
             builder.setErrorHandler(null);
             builder.parse(new ByteArrayInputStream(
                     xml.getBytes(StandardCharsets.UTF_8)));
@@ -44,11 +41,7 @@ public final class XMLValidator {
     public static java.util.List<String> validateIds(String xml) {
         java.util.List<String> problems = new java.util.ArrayList<>();
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setNamespaceAware(true);
-            factory.setFeature(
-                    "http://apache.org/xml/features/disallow-doctype-decl", true);
-            DocumentBuilder builder = factory.newDocumentBuilder();
+            DocumentBuilder builder = SecureXml.newBuilder();
             Document document = builder.parse(new ByteArrayInputStream(
                     xml.getBytes(StandardCharsets.UTF_8)));
             Set<String> ids = new HashSet<>();
